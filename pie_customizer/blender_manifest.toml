@@ -1,0 +1,30 @@
+schema_version = "1.0.0"
+
+id = "pie_customizer"
+version = "1.0.0"
+name = "Pie Customizer"
+tagline = "Build custom pie menus with any buttons you choose"
+maintainer = "cgPots"
+type = "add-on"
+website = "https://github.com/CGPots/pie-customizer"
+support = "https://github.com/CGPots/pie-customizer/issues"
+
+blender_version_min = "4.2.0"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+copyright = [
+  "2026 cgPots",
+]
+
+[permissions]
+files = "Import and export JSON presets"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  "*.pyc",
+]

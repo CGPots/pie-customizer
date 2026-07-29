@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible Pie Customizer problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Pie Customizer.
+  - type: input
+    id: blender_version
+    attributes:
+      label: Blender version
+      placeholder: "For example: 4.2.21 LTS or 5.2.0 LTS"
+    validations:
+      required: true
+  - type: dropdown
+    id: operating_system
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. Press...
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message or screenshots
+      description: Paste the complete Blender error or attach screenshots.
+  - type: checkboxes
+    id: clean_start
+    attributes:
+      label: Verification
+      options:
+        - label: I reproduced this after restarting Blender.
+          required: true
