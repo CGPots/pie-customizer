@@ -1,4 +1,4 @@
-# Pie Customizer 1.0.0
+# Pie Customizer 1.0.1
 
 ## Tagline
 
@@ -47,7 +47,17 @@ platform-specific issues are very welcome.
 Blender 4.2 LTS and newer. Tested with Blender 4.2.21 LTS, 4.5.11 LTS,
 5.1, and 5.2.0 LTS on macOS.
 
-## First Release Changelog
+## Release Notes
+
+### 1.0.1
+
+- Updated module loading to follow Blender's documented reload pattern.
+- Added a public issue tracker for support and bug reports.
+- Removed dynamic Python execution and development-only diagnostics.
+- Limited shortcut handling to registering and unregistering the add-on's own keymap items.
+- Rebuilt the package with Blender's official extension command-line tool.
+
+### 1.0.0
 
 - Initial public release.
 - Custom menu editor with eight native pie directions.

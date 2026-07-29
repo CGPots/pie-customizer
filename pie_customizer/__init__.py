@@ -1,6 +1,6 @@
 """Pie Customizer - custom pie menu builder for Blender."""
 
-ADDON_VERSION = (1, 0, 0)
+ADDON_VERSION = (1, 0, 1)
 
 bl_info = {
     "name": "Pie Customizer",

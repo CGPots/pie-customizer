@@ -1,4 +1,4 @@
-# Pie Customizer 1.0.0
+# Pie Customizer 1.0.1
 
 ## Listing Fields
 
@@ -77,6 +77,16 @@ platform-specific issues are very welcome.
 - Use automatic English and Russian localization.
 
 ## What's New
+
+### 1.0.1
+
+- Updated module loading to follow Blender's documented reload pattern.
+- Added a public issue tracker for support and bug reports.
+- Removed dynamic Python execution and development-only diagnostics.
+- Limited shortcut handling to registering and unregistering the add-on's own
+  keymap items.
+- Rebuilt the release package with Blender's official extension command-line
+  tool.
 
 ### 1.0.0
 

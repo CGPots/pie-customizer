@@ -34,13 +34,9 @@
 Подробная матрица операторов, параметров и результатов запуска:
 [`BLENDER_VERSION_AUDIT.md`](BLENDER_VERSION_AUDIT.md).
 
-Установите готовый архив:
+Установите официальный Blender Extension-архив:
 
-`dist/pie_customizer_v1.0.0.zip`
-
-Для Blender Extensions используйте extension-ready архив:
-
-`dist/pie_customizer_extension_v1.0.0.zip`
+`dist/pie_customizer_extension_v1.0.1.zip`
 
 В Blender: `Edit > Preferences > Add-ons > Install from Disk...`
 

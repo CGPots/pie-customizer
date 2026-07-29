@@ -1,10 +1,10 @@
-# Pie Customizer 1.0.0: комплект для публикации
+# Pie Customizer 1.0.1: комплект для публикации
 
 ## Что загружать на Blender Extensions
 
 Загрузите только этот файл:
 
-`pie_customizer_extension_v1.0.0.zip`
+`pie_customizer_extension_v1.0.1.zip`
 
 Это официальный Blender Extension-пакет для Blender 4.2 и новее. Не
 распаковывайте и не изменяйте его перед загрузкой.
@@ -21,7 +21,7 @@
 ## Коротко
 
 - Название: `Pie Customizer`
-- Версия: `1.0.0`
+- Версия: `1.0.1`
 - Автор: `cgPots`
 - Совместимость: `Blender 4.2 LTS and newer`
 - Лицензия: `GNU GPL 3.0 or later`

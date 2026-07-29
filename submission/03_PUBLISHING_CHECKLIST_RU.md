@@ -3,7 +3,7 @@
 ## Подготовить заранее
 
 - Blender ID для входа на официальный сайт.
-- Архив `pie_customizer_extension_v1.0.0.zip`.
+- Архив `pie_customizer_extension_v1.0.1.zip`.
 - Английское описание из `01_LISTING_EN.md`.
 - Минимум один аккуратный скриншот расширения в работе.
 - Исходный код: https://github.com/CGPots/pie-customizer
@@ -17,10 +17,10 @@
    https://extensions.blender.org/terms-of-service/
 3. Откройте форму:
    https://extensions.blender.org/submit/
-4. Загрузите только `pie_customizer_extension_v1.0.0.zip`.
+4. Загрузите только `pie_customizer_extension_v1.0.1.zip`.
 5. Проверьте автоматически прочитанные данные:
    - `Pie Customizer`
-   - `1.0.0`
+   - `1.0.1`
    - `cgPots`
    - `Blender 4.2.0 and newer`
    - `GPL-3.0-or-later`

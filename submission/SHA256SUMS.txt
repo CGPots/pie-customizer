@@ -1,1 +1,1 @@
-5e02fefbb8f8edb307a1b4b5a14052e810836557f529dd1cf9331964fe7cd996  pie_customizer_extension_v1.0.0.zip
+61496a4e9679452432560a44f2c502317bf1892b453f904f775f2dabd12cb024  pie_customizer_extension_v1.0.1.zip
