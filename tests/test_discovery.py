@@ -1,9 +1,11 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from pie_customizer.command_catalog import SEARCH_ACTIONS, catalog_action_group
 from pie_customizer.discovery import (
     BrowserAction,
+    _modifier_actions_from_enum_items,
     broad_category_for_action,
     brush_asset_catalog_supported,
     brush_asset_group,
@@ -62,6 +64,42 @@ class DiscoveryTest(unittest.TestCase):
             format_operator_command("mesh.merge", {"type": "CENTER", "uvs": True}),
             "mesh.merge(type='CENTER', uvs=True)",
         )
+
+    def test_modifier_enum_items_become_assignable_actions(self):
+        enum_items = (
+            SimpleNamespace(identifier="", name="Generate", description=""),
+            SimpleNamespace(identifier="ARRAY", name="Array", description="Repeat geometry"),
+            SimpleNamespace(
+                identifier="GREASE_PENCIL_MIRROR",
+                name="Mirror",
+                description="Mirror Grease Pencil strokes",
+            ),
+            SimpleNamespace(identifier="CLOTH", name="Cloth", description="Cloth simulation"),
+        )
+
+        actions = _modifier_actions_from_enum_items(enum_items)
+
+        self.assertEqual(len(actions), 3)
+        self.assertEqual(actions[0].label, "Array")
+        self.assertEqual(actions[0].group, "object_modifiers")
+        self.assertEqual(
+            actions[0].command,
+            "object.modifier_add(type='ARRAY')",
+        )
+        self.assertEqual(actions[0].operator_context, "EXEC_DEFAULT")
+        self.assertEqual(actions[1].label, "Grease Pencil: Mirror")
+        self.assertEqual(actions[1].group, "grease_pencil_modifiers")
+        self.assertEqual(actions[2].group, "physics_modifiers")
+        self.assertEqual(len({action.token for action in actions}), len(actions))
+
+    def test_modifier_actions_are_searchable_in_russian(self):
+        actions = _modifier_actions_from_enum_items(
+            (SimpleNamespace(identifier="BEVEL", name="Bevel", description="Chamfer edges"),)
+        )
+
+        self.assertEqual(filter_actions(actions, "модификатор"), actions)
+        self.assertEqual(filter_actions(actions, "bevel"), actions)
+        self.assertEqual(broad_category_for_action(actions[0]), "OBJECT")
 
     def test_brush_catalog_uses_version_appropriate_source(self):
         self.assertTrue(legacy_brush_catalog_supported((4, 2, 21)))
@@ -497,6 +535,13 @@ class DiscoveryTest(unittest.TestCase):
         self.assertEqual(group_label("preferences", "RU"), "Настройки Blender")
         self.assertEqual(group_label("wm", "RU"), "Общие команды")
         self.assertEqual(group_label("object", "RU"), "Действия с объектами")
+        self.assertEqual(group_label("object_modifiers", "RU"), "Модификаторы")
+        self.assertEqual(group_label("object_modifiers", "EN"), "Modifiers")
+        self.assertEqual(
+            group_label("grease_pencil_modifiers", "RU"),
+            "Модификаторы Grease Pencil",
+        )
+        self.assertEqual(group_label("physics_modifiers", "EN"), "Physics Modifiers")
         self.assertEqual(group_label("mesh", "RU"), "Операции с сеткой")
         self.assertEqual(group_label("transform", "RU"), "Инструменты трансформации")
         self.assertEqual(group_label("rigidbody", "RU"), "Физика твёрдых тел")

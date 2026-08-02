@@ -12,8 +12,8 @@ class ReleaseMetadataTest(unittest.TestCase):
     def test_legacy_metadata_matches_release_identity(self):
         self.assertEqual(bl_info["name"], "Pie Customizer")
         self.assertEqual(bl_info["author"], "cgPots")
-        self.assertEqual(bl_info["version"], (1, 0, 1))
-        self.assertEqual(ADDON_VERSION, (1, 0, 1))
+        self.assertEqual(bl_info["version"], (1, 0, 2))
+        self.assertEqual(ADDON_VERSION, (1, 0, 2))
         self.assertEqual(bl_info["blender"], (4, 2, 0))
 
     def test_extension_manifest_contains_release_identity(self):
@@ -21,7 +21,7 @@ class ReleaseMetadataTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn('id = "pie_customizer"', manifest)
-        self.assertIn('version = "1.0.1"', manifest)
+        self.assertIn('version = "1.0.2"', manifest)
         self.assertIn('maintainer = "cgPots"', manifest)
         self.assertIn('"SPDX:GPL-3.0-or-later"', manifest)
         self.assertIn('blender_version_min = "4.2.0"', manifest)

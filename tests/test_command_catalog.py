@@ -72,6 +72,7 @@ class CommandCatalogTest(unittest.TestCase):
             "sculpt_mask_clear",
             "sculpt_mask_invert",
             "sculpt_mirror_x",
+            "mesh_mirror_x_clean_seam",
             "mesh_merge_collapse",
             "mesh_delete_only_faces",
             "select_mode_face",
@@ -89,6 +90,15 @@ class CommandCatalogTest(unittest.TestCase):
         self.assertIsNotNone(action)
         self.assertEqual(action.command, "context.object.data.use_mirror_x")
 
+    def test_mesh_mirror_x_clean_seam_uses_the_addon_operator(self):
+        action = action_by_id("mesh_mirror_x_clean_seam")
+        self.assertIsNotNone(action)
+        self.assertEqual(
+            action.command,
+            "pie_customizer.add_mirror_x_clean_seam()",
+        )
+        self.assertEqual(action.operator_context, "EXEC_DEFAULT")
+
     def test_viewport_toggles_are_search_only_property_actions(self):
         self.assertGreaterEqual(len(VIEWPORT_TOGGLE_ACTIONS), 120)
         self.assertTrue(all(action.slot_type == "PROPERTY" for action in VIEWPORT_TOGGLE_ACTIONS))
@@ -98,6 +108,26 @@ class CommandCatalogTest(unittest.TestCase):
         self.assertIsNotNone(action_by_id("snap_option_enabled"))
         self.assertIsNotNone(action_by_id("object_visibility_mesh"))
         self.assertIsNotNone(action_by_id("object_selectability_mesh"))
+
+    def test_complete_snapping_controls_are_available(self):
+        expected_commands = {
+            "snap_base_closest": "context.scene.tool_settings.snap_target = 'CLOSEST'",
+            "snap_base_active": "context.scene.tool_settings.snap_target = 'ACTIVE'",
+            "snap_target_vertex": "context.scene.tool_settings.snap_elements_base = {'VERTEX'}",
+            "snap_target_face_center": "context.scene.tool_settings.snap_elements_base = {'FACE_MIDPOINT'}",
+            "snap_individual_face_project": "context.scene.tool_settings.snap_elements_individual = {'FACE_PROJECT'}",
+            "snap_individual_face_nearest": "context.scene.tool_settings.snap_elements_individual = {'FACE_NEAREST'}",
+            "snap_option_align_rotation": "context.scene.tool_settings.use_snap_align_rotation",
+            "snap_option_selectable": "context.scene.tool_settings.use_snap_selectable",
+            "snap_rotation_increment_standard": "context.scene.tool_settings.snap_angle_increment_3d = 0.08726646259971647",
+            "snap_rotation_increment_precision": "context.scene.tool_settings.snap_angle_increment_3d_precision = 0.017453292519943295",
+        }
+        for action_id, command in expected_commands.items():
+            with self.subTest(action=action_id):
+                action = action_by_id(action_id)
+                self.assertIsNotNone(action)
+                self.assertEqual(action.command, command)
+                self.assertEqual(catalog_action_group(action), "transform_snapping")
 
     def test_curated_actions_use_semantic_groups(self):
         expected = {
@@ -116,6 +146,7 @@ class CommandCatalogTest(unittest.TestCase):
             "paint_flip_colors": "paint_actions",
             "mesh_merge_center": "mesh_merge",
             "mesh_delete_faces": "mesh_delete",
+            "mesh_mirror_x_clean_seam": "mesh_modeling",
             "select_mode_face": "mesh_select_mode",
             "select_all_objects": "select_objects",
             "select_all_mesh": "select_mesh",
