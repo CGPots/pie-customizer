@@ -8,11 +8,12 @@ from typing import Iterable
 
 import bpy
 
+from .availability import menu_matches_context
 from .action_parser import parse_operator_command, parse_property_command
 from .localization import t
 from .model import KEYMAP_CONTEXTS
 from .preset import normalize_preset_items
-from .shortcuts import normalize_key_event
+from .shortcuts import is_unsafe_plain_shortcut, normalize_key_event
 
 
 ADDON_ID = __package__ or "pie_customizer"
@@ -69,7 +70,29 @@ def clear_slot(slot):
     slot.icon = "NONE"
     slot.slot_type = "SEPARATOR"
     slot.command = ""
+    slot.context_space_type = ""
     slot.operator_context = "INVOKE_DEFAULT"
+
+
+def assign_slot_action(
+    slot,
+    *,
+    label: str,
+    icon: str,
+    slot_type: str,
+    command: str,
+    operator_context: str = "INVOKE_DEFAULT",
+    context_space_type: str = "",
+):
+    """Assign one validated action without touching any other pie position."""
+
+    slot.enabled = True
+    slot.label = label
+    slot.icon = icon or "NONE"
+    slot.slot_type = slot_type
+    slot.command = command
+    slot.context_space_type = context_space_type
+    slot.operator_context = operator_context
 
 
 def rebuild_dynamic_menus(context=None):
@@ -95,6 +118,7 @@ def rebuild_dynamic_menus(context=None):
             {
                 "bl_idname": menu_id,
                 "bl_label": menu_config.name or t(prefs, "custom_pie"),
+                "poll": classmethod(_make_menu_poll(menu_config.uid)),
                 "draw": _make_menu_draw(menu_config.uid),
             },
         )
@@ -104,6 +128,7 @@ def rebuild_dynamic_menus(context=None):
             {
                 "bl_idname": list_menu_id,
                 "bl_label": menu_config.name or t(prefs, "custom_pie"),
+                "poll": classmethod(_make_menu_poll(menu_config.uid)),
                 "draw": _make_menu_list_draw(menu_config.uid),
             },
         )
@@ -316,8 +341,15 @@ def _format_literal(value) -> str:
     return repr(value)
 
 
-def run_property_command(command: str, context):
+def run_property_command(command: str, context, required_space_type: str = ""):
     prefs = get_preferences(context)
+    if required_space_type:
+        space_data = getattr(context, "space_data", None)
+        actual_space_type = getattr(space_data, "type", "")
+        if actual_space_type != required_space_type:
+            raise ValueError(
+                t(prefs, "property_editor_required").format(editor=required_space_type)
+            )
     parsed = parse_property_command(command)
     path = _LEGACY_PROPERTY_PATHS.get(parsed.path, parsed.path)
     owner, attribute = _resolve_property_owner(path, context)
@@ -340,6 +372,8 @@ def serialize_menus(prefs) -> list[dict]:
                 "uid": menu.uid,
                 "enabled": menu.enabled,
                 "name": menu.name,
+                "mode_filter_enabled": menu.mode_filter_enabled,
+                "allowed_modes": sorted(menu.allowed_modes),
                 "keymap_context": menu.keymap_context,
                 "custom_keymap_name": menu.custom_keymap_name,
                 "custom_space_type": menu.custom_space_type,
@@ -357,6 +391,7 @@ def serialize_menus(prefs) -> list[dict]:
                         "icon": slot.icon,
                         "slot_type": slot.slot_type,
                         "command": slot.command,
+                        "context_space_type": slot.context_space_type,
                         "operator_context": slot.operator_context,
                     }
                     for slot in menu.slots
@@ -379,6 +414,8 @@ def load_menus(prefs, items: Iterable[dict], replace: bool):
         menu.uid = item.get("uid") or _new_uid()
         menu.enabled = bool(item.get("enabled", True))
         menu.name = item.get("name", t(prefs, "custom_pie"))
+        menu.mode_filter_enabled = bool(item.get("mode_filter_enabled", False))
+        menu.allowed_modes = set(item.get("allowed_modes", ()))
         menu.keymap_context = item.get("keymap_context", "VIEW_3D")
         menu.custom_keymap_name = item.get("custom_keymap_name", "3D View")
         menu.custom_space_type = item.get("custom_space_type", "VIEW_3D")
@@ -398,6 +435,7 @@ def load_menus(prefs, items: Iterable[dict], replace: bool):
             slot.icon = slot_data.get("icon", "NONE")
             slot.slot_type = slot_data.get("slot_type", "SEPARATOR")
             slot.command = slot_data.get("command", "")
+            slot.context_space_type = slot_data.get("context_space_type", "")
             slot.operator_context = slot_data.get("operator_context", "INVOKE_DEFAULT")
 
 
@@ -453,6 +491,14 @@ def _register_keymap(keyconfig, menu_config, menu_id: str):
     key_type = normalize_key_event(menu_config.key)
     if not key_type:
         return f"{menu_config.name}: {t(prefs, 'invalid_key')}"
+    if is_unsafe_plain_shortcut(
+        key_type,
+        menu_config.ctrl,
+        menu_config.shift,
+        menu_config.alt,
+        menu_config.oskey,
+    ):
+        return f"{menu_config.name}: {t(prefs, 'shortcut_requires_modifier')}"
 
     keymap_name, space_type, region_type = keymap_tuple(menu_config)
     keymap = keyconfig.keymaps.get(keymap_name)
@@ -500,6 +546,15 @@ def _make_menu_draw(menu_uid: str):
     return draw
 
 
+def _make_menu_poll(menu_uid: str):
+    def poll(_cls, context):
+        prefs = get_preferences(context)
+        menu_config = _find_menu_by_uid(prefs, menu_uid) if prefs else None
+        return menu_config is not None and menu_matches_context(menu_config, context)
+
+    return poll
+
+
 def _make_menu_list_draw(menu_uid: str):
     def draw(self, context):
         prefs = get_preferences(context)
@@ -523,11 +578,11 @@ def _draw_slot(layout, slot, context):
 
     if slot.slot_type == "OPERATOR":
         try:
-            parsed = parse_operator_command(slot.command)
-            if parsed.kwargs:
-                raise ValueError(t(prefs, "operator_arguments_runner"))
+            parsed = parse_operator_command(normalize_operator_command(slot.command))
             layout.operator_context = slot.operator_context
-            layout.operator(parsed.operator_id, text=label, icon=icon)
+            operator = layout.operator(parsed.operator_id, text=label, icon=icon)
+            for name, value in parsed.kwargs.items():
+                setattr(operator, name, value)
             return
         except Exception:
             operator = layout.operator("pie_customizer.run_action", text=label, icon=icon)
@@ -552,6 +607,7 @@ def _draw_slot(layout, slot, context):
     operator.action_type = slot.slot_type
     operator.command = slot.command
     operator.operator_context = slot.operator_context
+    operator.context_space_type = slot.context_space_type
 
 
 def draw_menu_as_list(layout, menu_config, context):
@@ -592,6 +648,31 @@ def safe_icon(icon_name: str) -> str:
     if icon in _get_builtin_icon_names():
         return icon
     return "NONE"
+
+
+def builtin_icon_names() -> tuple[str, ...]:
+    """Return Blender's public built-in UI icon identifiers in a stable order."""
+
+    names = _get_builtin_icon_names()
+    return (
+        "NONE",
+        *(
+            sorted(
+                name
+                for name in names
+                if name
+                not in {
+                    "NONE",
+                    "BLANK1",
+                    "COLORSET_17_VEC",
+                    "COLORSET_18_VEC",
+                    "COLORSET_19_VEC",
+                    "COLORSET_20_VEC",
+                }
+                and "BLENDER" not in name
+            )
+        ),
+    )
 
 
 def _get_builtin_icon_names() -> set[str]:

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from .availability import MODE_FILTER_IDS, normalized_mode_selection
+from .shortcuts import EVENT_VALUE_IDS, normalize_event_value
+
 
 MAX_PRESET_MENUS = 256
 VALID_KEYMAP_CONTEXTS = {
@@ -13,7 +16,7 @@ VALID_KEYMAP_CONTEXTS = {
     "NODE_EDITOR",
     "CUSTOM",
 }
-VALID_EVENT_VALUES = {"PRESS", "RELEASE", "CLICK", "DOUBLE_CLICK"}
+VALID_EVENT_VALUES = set(EVENT_VALUE_IDS)
 VALID_SLOT_TYPES = {"SEPARATOR", "OPERATOR", "PROPERTY", "MENU"}
 VALID_OPERATOR_CONTEXTS = {"INVOKE_DEFAULT", "EXEC_DEFAULT"}
 
@@ -35,10 +38,26 @@ def _normalize_menu(item, index: int) -> dict:
     if not isinstance(slots, list):
         raise ValueError(f"pie_menus[{index}].slots must be a list")
 
+    mode_filter_enabled = _boolean(
+        item.get("mode_filter_enabled", False),
+        f"pie_menus[{index}].mode_filter_enabled",
+    )
+    allowed_modes = normalized_mode_selection(
+        _enum_list(
+            item.get("allowed_modes", []),
+            MODE_FILTER_IDS,
+            f"pie_menus[{index}].allowed_modes",
+        )
+    )
+    if mode_filter_enabled and not allowed_modes:
+        mode_filter_enabled = False
+
     return {
         "uid": _text(item.get("uid", "")),
         "enabled": _boolean(item.get("enabled", True), f"pie_menus[{index}].enabled"),
         "name": _text(item.get("name", "")),
+        "mode_filter_enabled": mode_filter_enabled,
+        "allowed_modes": sorted(allowed_modes),
         "keymap_context": _enum(
             item.get("keymap_context", "VIEW_3D"),
             VALID_KEYMAP_CONTEXTS,
@@ -49,7 +68,7 @@ def _normalize_menu(item, index: int) -> dict:
         "custom_region_type": _text(item.get("custom_region_type", "WINDOW")),
         "key": _text(item.get("key", "")),
         "event_value": _enum(
-            item.get("event_value", "PRESS"),
+            normalize_event_value(_text(item.get("event_value", "PRESS"))),
             VALID_EVENT_VALUES,
             f"pie_menus[{index}].event_value",
         ),
@@ -74,6 +93,7 @@ def _normalize_slot(item, menu_index: int, slot_index: int) -> dict:
         "icon": _text(item.get("icon", "NONE")) or "NONE",
         "slot_type": slot_type,
         "command": _text(item.get("command", "")),
+        "context_space_type": _text(item.get("context_space_type", "")),
         "operator_context": _enum(
             item.get("operator_context", "INVOKE_DEFAULT"),
             VALID_OPERATOR_CONTEXTS,
@@ -95,6 +115,19 @@ def _boolean(value, path: str) -> bool:
     if value in (0, 1):
         return bool(value)
     raise ValueError(f"Invalid boolean for {path}")
+
+
+def _enum_list(value, allowed: frozenset[str], path: str) -> list[str]:
+    if not isinstance(value, (list, tuple, set)):
+        raise ValueError(f"{path} must be a list")
+    normalized = []
+    for index, item in enumerate(value):
+        identifier = _text(item)
+        if identifier not in allowed:
+            raise ValueError(f"Invalid value for {path}[{index}]: {identifier!r}")
+        if identifier not in normalized:
+            normalized.append(identifier)
+    return normalized
 
 
 def _text(value) -> str:

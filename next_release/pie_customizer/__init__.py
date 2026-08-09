@@ -1,6 +1,6 @@
 """Pie Customizer - custom pie menu builder for Blender."""
 
-ADDON_VERSION = (1, 0, 2)
+ADDON_VERSION = (1, 1, 1)
 
 bl_info = {
     "name": "Pie Customizer",
@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 
 if bpy is not None:
     from . import (
+        availability,
         command_catalog,
         discovery,
         localization,
@@ -28,6 +29,8 @@ if bpy is not None:
         operators,
         preset,
         preferences,
+        quick_add,
+        quick_add_data,
         runtime,
         shortcuts,
         ui_style,
@@ -37,16 +40,19 @@ if bpy is not None:
         import importlib
 
         for module in (
+            availability,
             command_catalog,
             discovery,
             localization,
+            shortcuts,
             model,
             operator_parameters,
             operators,
             preset,
             preferences,
+            quick_add_data,
+            quick_add,
             runtime,
-            shortcuts,
             ui_style,
         ):
             importlib.reload(module)
@@ -55,6 +61,7 @@ if bpy is not None:
         *model.CLASSES,
         *preferences.CLASSES,
         *operators.CLASSES,
+        *quick_add.CLASSES,
     )
 else:
     CLASSES = ()
@@ -72,9 +79,11 @@ def register():
             bpy.utils.register_class(cls)
             registered_classes.append(cls)
 
+        quick_add.register_context_menu()
         runtime.ensure_initial_preferences()
         runtime.rebuild_dynamic_menus()
     except Exception:
+        quick_add.unregister_context_menu()
         for cls in reversed(registered_classes):
             try:
                 bpy.utils.unregister_class(cls)
@@ -91,6 +100,7 @@ def unregister():
     if bpy is None:
         return
 
+    quick_add.unregister_context_menu()
     runtime.unregister_dynamic_menus()
 
     for cls in reversed(CLASSES):

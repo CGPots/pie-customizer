@@ -1,33 +1,63 @@
+import importlib.util
 import unittest
+from pathlib import Path
 
-from pie_customizer.shortcuts import normalize_key_event, shortcut_display, update_modifier_state
+
+MODULE_PATH = Path(__file__).parents[1] / "pie_customizer" / "shortcuts.py"
+SPEC = importlib.util.spec_from_file_location("pie_customizer_shortcuts", MODULE_PATH)
+shortcuts = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(shortcuts)
 
 
-class ShortcutTest(unittest.TestCase):
-    def test_digit_keys_are_blender_event_ids(self):
-        self.assertEqual(normalize_key_event("1"), "ONE")
-        self.assertEqual(normalize_key_event("0"), "ZERO")
+class ShortcutSafetyTests(unittest.TestCase):
+    def test_plain_pointer_navigation_is_blocked(self):
+        for event_type in shortcuts.PLAIN_POINTER_EVENT_IDS:
+            with self.subTest(event_type=event_type):
+                self.assertTrue(shortcuts.is_unsafe_plain_shortcut(event_type))
 
-    def test_common_aliases(self):
-        self.assertEqual(normalize_key_event("spacebar"), "SPACE")
-        self.assertEqual(normalize_key_event("enter"), "RET")
+    def test_plain_essential_keyboard_input_is_blocked(self):
+        for event_type in shortcuts.PLAIN_KEYBOARD_EVENT_IDS:
+            with self.subTest(event_type=event_type):
+                self.assertTrue(shortcuts.is_unsafe_plain_shortcut(event_type))
 
-    def test_display_keeps_user_friendly_digits(self):
-        self.assertEqual(shortcut_display("1", alt=True), "Alt + 1")
+    def test_modified_reserved_input_is_allowed(self):
+        for modifier in ("ctrl", "shift", "alt", "oskey"):
+            with self.subTest(modifier=modifier):
+                self.assertFalse(
+                    shortcuts.is_unsafe_plain_shortcut(
+                        "LEFTMOUSE",
+                        **{modifier: True},
+                    )
+                )
+                self.assertFalse(
+                    shortcuts.is_unsafe_plain_shortcut(
+                        "SPACE",
+                        **{modifier: True},
+                    )
+                )
 
-    def test_modifier_state_tracks_press_and_release(self):
-        state = {"ctrl": False, "shift": False, "alt": False, "oskey": False}
-        update_modifier_state(state, "LEFT_ALT", "PRESS")
-        self.assertTrue(state["alt"])
-        update_modifier_state(state, "LEFT_ALT", "RELEASE")
-        self.assertFalse(state["alt"])
+    def test_regular_keys_and_extra_mouse_buttons_are_allowed(self):
+        for event_type in ("A", "ONE", "F1", "BUTTON4MOUSE", "BUTTON5MOUSE"):
+            with self.subTest(event_type=event_type):
+                self.assertFalse(shortcuts.is_unsafe_plain_shortcut(event_type))
 
-    def test_modifier_state_keeps_multiple_modifiers(self):
-        state = {"ctrl": False, "shift": False, "alt": False, "oskey": False}
-        update_modifier_state(state, "LEFT_CTRL", "PRESS")
-        update_modifier_state(state, "LEFT_SHIFT", "PRESS")
-        self.assertTrue(state["ctrl"])
-        self.assertTrue(state["shift"])
+    def test_all_supported_trigger_types_have_blender_ids(self):
+        self.assertEqual(
+            shortcuts.EVENT_VALUE_IDS,
+            {"PRESS", "RELEASE", "CLICK", "DOUBLE_CLICK", "CLICK_DRAG"},
+        )
+        self.assertEqual(shortcuts.normalize_event_value("Drag"), "CLICK_DRAG")
+        self.assertEqual(shortcuts.event_value_display("CLICK_DRAG"), "Drag")
+
+    def test_shortcut_display_can_include_trigger_type(self):
+        self.assertEqual(
+            shortcuts.shortcut_display(
+                "F8",
+                ctrl=True,
+                event_value="DOUBLE_CLICK",
+            ),
+            "Ctrl + F8 · Double Click",
+        )
 
 
 if __name__ == "__main__":

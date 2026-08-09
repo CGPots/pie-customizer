@@ -1,6 +1,6 @@
 # Pie Customizer: Blender Version Audit
 
-Audit date: 2026-07-26
+Audit date: 2026-08-09
 
 ## Scope
 
@@ -141,3 +141,18 @@ checklist:
 The current installed Blender 4.2.21, 4.5.11, and 5.2.0 builds all complete the
 background catalog smoke. Blender 4.2 additionally completes the foreground UI
 test required by its context-dependent workspace tool operator.
+
+## Version 1.1.1 Addendum
+
+The exact packaged 1.1.1 archive was additionally checked in Blender 4.2.21
+LTS, 4.5.11 LTS, and 5.2.0 LTS. The checks cover Quick Add assignment and
+replacement, shortcut event registration and cleanup, legacy and current JSON
+preset round trips, automatic icon suggestions, and the built-in icon browser.
+
+After filtering Blender logos, blank placeholders, and four duplicate black
+swatches, the tested icon browsers expose 956 identifiers in Blender 4.2, 986
+in Blender 4.5, and 1026 in Blender 5.2. Colored swatches remain available.
+
+Interactive UI layout was reviewed on macOS in Blender 5.2. Windows and Linux,
+as well as complete manual pointer interaction in Blender 4.2 and 4.5, remain
+release-feedback targets rather than claimed test coverage.

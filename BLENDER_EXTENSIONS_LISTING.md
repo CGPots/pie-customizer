@@ -1,4 +1,4 @@
-# Pie Customizer 1.0.1
+# Pie Customizer 1.1.1
 
 ## Tagline
 
@@ -14,6 +14,15 @@ configure common operator parameters, save favorites, and connect one custom
 menu to another when eight directions are not enough. Advanced users can also
 enter operators, properties, or Blender menus manually.
 
+Supported Blender operator and property buttons can be assigned directly from
+their right-click menu with **Add to Pie Customizer**. Quick Add lets users
+choose the target menu, value, direction, and icon without leaving the current
+editor.
+
+Shortcuts can trigger on Press, Release, Click, Double Click, or Drag. A visual
+browser provides searchable built-in Blender icons, while Quick Add suggests a
+suitable icon that can be overridden before assignment.
+
 The interface follows Blender's language automatically and includes English
 and Russian translations. Presets can be imported and exported as JSON.
 
@@ -28,6 +37,9 @@ platform-specific issues are very welcome.
 
 - Create and manage multiple custom pie menus.
 - Capture single-key and modifier shortcuts directly from the keyboard.
+- Configure Press, Release, Click, Double Click, and Drag shortcut triggers.
+- Add supported Blender operations and properties from their right-click menu.
+- Browse and search Blender's built-in icons or use an automatic Quick Add suggestion.
 - Search Blender operators by name, description, category, or operator ID.
 - Browse dedicated Sculpting, Painting, Nodes, and Animation sections.
 - Find the built-in brushes provided by the active Blender version. Blender 4.2
@@ -44,10 +56,20 @@ platform-specific issues are very welcome.
 
 ## Compatibility
 
-Blender 4.2 LTS and newer. Tested with Blender 4.2.21 LTS, 4.5.11 LTS,
-5.1, and 5.2.0 LTS on macOS.
+Blender 4.2 LTS and newer. Version 1.1.1 was tested with Blender 4.2.21 LTS,
+4.5.11 LTS, and 5.2.0 LTS on macOS.
 
 ## Release Notes
+
+### 1.1.1
+
+- Added **Add to Pie Customizer** for supported Blender operator and property buttons.
+- Added Press, Release, Click, Double Click, and Drag shortcut triggers with reassignment from a compact dialog.
+- Added a searchable, paged browser for Blender's built-in icons.
+- Added automatic RNA/catalog icon suggestions and a compact override in Quick Add.
+- Preserved icons and shortcut event values through preset import/export while keeping legacy presets compatible.
+- Improved Quick Add alignment, direction labels, spacing, and icon-page navigation.
+- Verified the packaged release in Blender 4.2 LTS, 4.5 LTS, and 5.2 LTS.
 
 ### 1.0.1
 

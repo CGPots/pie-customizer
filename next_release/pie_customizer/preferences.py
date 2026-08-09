@@ -10,6 +10,7 @@ from bpy.props import BoolProperty, CollectionProperty, EnumProperty, IntPropert
 
 from . import runtime
 from .action_parser import parse_operator_command
+from .availability import mode_label
 from .command_catalog import (
     ACTIONS,
     SEARCH_ACTIONS,
@@ -492,6 +493,16 @@ def _active_pie_menu(prefs):
     return menu
 
 
+def _menu_availability_text(prefs, menu) -> str:
+    if not menu.mode_filter_enabled:
+        return t(prefs, "all_modes")
+
+    selected = sorted(menu.allowed_modes)
+    if len(selected) == 1:
+        return mode_label(selected[0], effective_language())
+    return t(prefs, "modes_selected").format(count=len(selected))
+
+
 def _draw_menus_content(layout, prefs) -> None:
     menu_row = layout.row()
     menu_row.template_list(
@@ -571,6 +582,17 @@ def _draw_slots_content(layout, prefs, context, menu) -> None:
         controls = details_box.row(align=True)
         controls.prop(slot, "enabled", text="")
         controls.prop(slot, "label", text="")
+        choose_icon = controls.operator(
+            "pie_customizer.choose_slot_icon",
+            text="",
+            icon=(
+                runtime.safe_icon(slot.icon)
+                if runtime.safe_icon(slot.icon) != "NONE"
+                else "IMAGE_DATA"
+            ),
+        )
+        choose_icon.menu_uid = menu.uid
+        choose_icon.slot_position = menu.active_slot_position
         controls.operator("pie_customizer.clear_slot", text="", icon="TRASH")
 
     if (
@@ -745,14 +767,27 @@ class PC_UL_PieMenuList(bpy.types.UIList):
         row = layout.row(align=True)
         row.prop(item, "enabled", text="")
         row.prop(item, "name", text="", emboss=False)
+        availability = row.operator(
+            "pie_customizer.configure_menu_availability",
+            text=_menu_availability_text(data, item),
+            icon="FILTER",
+        )
+        availability.menu_uid = item.uid
         shortcut = (
-            shortcut_display(item.key, item.ctrl, item.shift, item.alt, item.oskey)
+            shortcut_display(
+                item.key,
+                item.ctrl,
+                item.shift,
+                item.alt,
+                item.oskey,
+                item.event_value,
+            )
             if item.key
             else t(data, "no_key")
         )
         row.operator_context = "INVOKE_DEFAULT"
         capture = row.operator(
-            "pie_customizer.capture_shortcut",
+            "pie_customizer.configure_shortcut",
             text=shortcut,
             icon="KEY_HLT",
         )

@@ -461,12 +461,12 @@ ACTIONS = (
     CatalogAction(
         "mesh_mirror_x_clean_seam",
         "MESH",
-        "Зеркало X от курсора + удалить стык",
-        "Mirror X from Cursor + Clean Seam",
+        "Зеркало X от курсора",
+        "Mirror X from Cursor",
         "MOD_MIRROR",
         "OPERATOR",
         "pie_customizer.add_mirror_x_clean_seam()",
-        "EXEC_DEFAULT",
+        "INVOKE_DEFAULT",
     ),
     *_variant_actions(
         "MESH",

@@ -97,7 +97,7 @@ class CommandCatalogTest(unittest.TestCase):
             action.command,
             "pie_customizer.add_mirror_x_clean_seam()",
         )
-        self.assertEqual(action.operator_context, "EXEC_DEFAULT")
+        self.assertEqual(action.operator_context, "INVOKE_DEFAULT")
 
     def test_viewport_toggles_are_search_only_property_actions(self):
         self.assertGreaterEqual(len(VIEWPORT_TOGGLE_ACTIONS), 120)

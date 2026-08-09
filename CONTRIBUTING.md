@@ -32,7 +32,7 @@ Validate and build with Blender's official extension commands:
 blender --command extension validate pie_customizer
 blender --command extension build \
   --source-dir pie_customizer \
-  --output-filepath dist/pie_customizer_extension_v1.0.2.zip
+  --output-filepath dist/pie_customizer-<version>.zip
 ```
 
 See Blender's

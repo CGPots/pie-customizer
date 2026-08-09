@@ -7,7 +7,9 @@ import json
 import bpy
 from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
 
+from .availability import MODE_FILTER_ITEMS
 from .localization import effective_language
+from .shortcuts import EVENT_VALUE_ITEMS
 
 
 SLOT_TYPE_ITEMS = {
@@ -44,13 +46,6 @@ KEYMAP_CONTEXT_ITEMS = (
     ("IMAGE", "Image Editor", "Image Editor shortcuts"),
     ("NODE_EDITOR", "Node Editor", "Node Editor shortcuts"),
     ("CUSTOM", "Custom", "Set a custom keymap name, space type, and region type"),
-)
-
-EVENT_VALUE_ITEMS = (
-    ("PRESS", "Press", ""),
-    ("RELEASE", "Release", ""),
-    ("CLICK", "Click", ""),
-    ("DOUBLE_CLICK", "Double Click", ""),
 )
 
 OPERATOR_CONTEXT_ITEMS = (
@@ -150,6 +145,12 @@ class PC_PieSlot(bpy.types.PropertyGroup):
     icon: StringProperty(name="Icon", description="Built-in Blender icon name, such as MESH_CUBE", default="NONE")  # type: ignore
     slot_type: EnumProperty(name="Type", description="Action type for this slot", items=_slot_type_items, default=0)  # type: ignore
     command: StringProperty(name="Command", description="Operator, property, or menu identifier", default="")  # type: ignore
+    context_space_type: StringProperty(
+        name="Editor Context",
+        description="Editor required by a captured property action",
+        default="",
+        options={"HIDDEN"},
+    )  # type: ignore
     operator_context: EnumProperty(  # type: ignore
         name="Run Mode",
         description="How to run the Blender operator",
@@ -162,6 +163,18 @@ class PC_PieMenu(bpy.types.PropertyGroup):
     uid: StringProperty(name="ID", default="")  # type: ignore
     enabled: BoolProperty(name="Enabled", description="Register this pie menu and its shortcut", default=True)  # type: ignore
     name: StringProperty(name="Name", description="Pie menu name", default="Custom Pie")  # type: ignore
+    mode_filter_enabled: BoolProperty(  # type: ignore
+        name="Limit by Mode",
+        description="Show this pie menu only in the selected Blender modes",
+        default=False,
+    )
+    allowed_modes: EnumProperty(  # type: ignore
+        name="Available Modes",
+        description="Blender modes where this pie menu is available",
+        items=MODE_FILTER_ITEMS,
+        options={"ENUM_FLAG"},
+        default=set(),
+    )
     keymap_context: EnumProperty(  # type: ignore
         name="Shortcut Context",
         description="Blender keymap where the shortcut will be created",

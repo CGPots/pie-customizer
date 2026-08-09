@@ -1,8 +1,10 @@
-## Pie Customizer 1.0.2
+## Pie Customizer 1.1.1
 
-- Expanded the catalog of modifier actions and snapping controls.
-- Added snapping targets, bases, transform effects, rotation increments, and related viewport options.
-- Improved version-aware command discovery for Blender 4.2 through 5.2.
-- Fixed incompatible operator parameters and enum values across supported Blender versions.
-- Improved catalog organization and search coverage.
-- General stability and compatibility improvements.
+- Added **Add to Pie Customizer** for supported Blender operator and property buttons.
+- Added explicit property values, menu and direction selection, new-menu creation, and occupied-slot replacement confirmation to Quick Add.
+- Added Press, Release, Click, Double Click, and Drag shortcut triggers with shortcut reassignment from a compact dialog.
+- Added a searchable, paged browser for Blender built-in icons.
+- Added automatic RNA/catalog icon suggestions and a compact icon override in Quick Add.
+- Preserved icons and shortcut event values through JSON preset import/export while keeping legacy presets compatible.
+- Improved Quick Add alignment, direction labels, spacing, and icon-page navigation.
+- Verified the packaged release in Blender 4.2 LTS, 4.5 LTS, and 5.2 LTS.

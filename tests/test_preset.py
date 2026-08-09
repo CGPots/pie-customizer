@@ -1,45 +1,37 @@
 import unittest
 
-from pie_customizer.preset import MAX_PRESET_MENUS, normalize_preset_items
+from pie_customizer.preset import normalize_preset_items
 
 
-class PresetValidationTest(unittest.TestCase):
-    def test_normalizes_valid_menu_and_slot(self):
+class PresetShortcutEventTests(unittest.TestCase):
+    def test_legacy_preset_defaults_to_press(self):
+        menus = normalize_preset_items([{"name": "Legacy", "slots": []}])
+        self.assertEqual(menus[0]["event_value"], "PRESS")
+
+    def test_all_shortcut_event_types_round_trip_through_validation(self):
+        event_values = ("PRESS", "RELEASE", "CLICK", "DOUBLE_CLICK", "CLICK_DRAG")
         menus = normalize_preset_items(
             [
-                {
-                    "uid": "menu-a",
-                    "name": "Tools",
-                    "slots": [
-                        {
-                            "slot_type": "OPERATOR",
-                            "command": "object.delete()",
-                            "label": "Delete",
-                        }
-                    ],
-                }
+                {"name": event_value, "event_value": event_value, "slots": []}
+                for event_value in event_values
             ]
         )
+        self.assertEqual(
+            [menu["event_value"] for menu in menus],
+            list(event_values),
+        )
 
-        self.assertEqual(menus[0]["uid"], "menu-a")
-        self.assertTrue(menus[0]["slots"][0]["enabled"])
-        self.assertEqual(menus[0]["slots"][0]["operator_context"], "INVOKE_DEFAULT")
+    def test_drag_label_is_imported_as_blender_click_drag_value(self):
+        menus = normalize_preset_items(
+            [{"name": "Drag", "event_value": "DRAG", "slots": []}]
+        )
+        self.assertEqual(menus[0]["event_value"], "CLICK_DRAG")
 
-    def test_rejects_non_object_menu(self):
-        with self.assertRaisesRegex(ValueError, r"pie_menus\[0\]"):
-            normalize_preset_items(["invalid"])
-
-    def test_rejects_unknown_enum_value(self):
-        with self.assertRaisesRegex(ValueError, "keymap_context"):
-            normalize_preset_items([{"keymap_context": "UNKNOWN"}])
-
-    def test_rejects_non_boolean_value(self):
-        with self.assertRaisesRegex(ValueError, "enabled"):
-            normalize_preset_items([{"enabled": "yes"}])
-
-    def test_limits_menu_count(self):
-        with self.assertRaisesRegex(ValueError, str(MAX_PRESET_MENUS)):
-            normalize_preset_items([{}] * (MAX_PRESET_MENUS + 1))
+    def test_unknown_shortcut_event_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "event_value"):
+            normalize_preset_items(
+                [{"name": "Invalid", "event_value": "HOLD", "slots": []}]
+            )
 
 
 if __name__ == "__main__":

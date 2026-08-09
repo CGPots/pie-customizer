@@ -21,6 +21,15 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from . import runtime
 from .action_parser import parse_operator_command
+from .availability import (
+    MODE_FILTER_GROUPS,
+    MODE_FILTER_ITEMS,
+    blender_context_mode_ids,
+    mode_label,
+    normalized_mode_selection,
+    preferred_filter_for_context_mode,
+    supported_filter_ids,
+)
 from .discovery import (
     canonical_operator_group,
     format_operator_command,
@@ -29,11 +38,83 @@ from .discovery import (
 from .localization import effective_language, t
 from .model import PC_OperatorParameter
 from .operator_parameters import parameters_to_kwargs, populate_parameters
-from .shortcuts import MODIFIER_EVENT_TYPES, key_storage_name, shortcut_display, update_modifier_state
-from .ui_style import SPACING_SMALL, draw_space
+from .shortcuts import (
+    EVENT_VALUE_ITEMS,
+    MODIFIER_EVENT_TYPES,
+    is_unsafe_plain_shortcut,
+    key_storage_name,
+    normalize_event_value,
+    shortcut_display,
+    update_modifier_state,
+)
+from .ui_style import SPACING_MEDIUM, SPACING_SMALL, draw_space
 
 
 LOGGER = logging.getLogger(__name__)
+ICON_BROWSER_COLUMNS = 10
+ICON_BROWSER_PAGE_SIZE = 100
+_ICON_ENUM_ITEMS = None
+
+
+def _slot_icon_enum_items(_self, _context):
+    global _ICON_ENUM_ITEMS
+    if _ICON_ENUM_ITEMS is None:
+        _ICON_ENUM_ITEMS = tuple(
+            (
+                icon_name,
+                icon_name.replace("_", " ").title(),
+                icon_name,
+                icon_name,
+                index,
+            )
+            for index, icon_name in enumerate(runtime.builtin_icon_names())
+        )
+    return _ICON_ENUM_ITEMS
+
+
+def _matching_icon_names(query: str) -> tuple[str, ...]:
+    names = runtime.builtin_icon_names()
+    tokens = tuple(token for token in query.strip().upper().split() if token)
+    if not tokens:
+        return names
+    return tuple(name for name in names if all(token in name for token in tokens))
+
+
+def _icon_page_items(self, _context):
+    total = len(_matching_icon_names(getattr(self, "icon_search", "")))
+    page_count = max(1, (total + ICON_BROWSER_PAGE_SIZE - 1) // ICON_BROWSER_PAGE_SIZE)
+    return tuple(
+        (str(index), f"{index + 1} / {page_count}", "", index)
+        for index in range(page_count)
+    )
+
+
+def _reset_icon_page(self, _context):
+    self.icon_page = "0"
+
+
+def _step_icon_page(self, direction: int) -> None:
+    total = len(_matching_icon_names(getattr(self, "icon_search", "")))
+    page_count = max(1, (total + ICON_BROWSER_PAGE_SIZE - 1) // ICON_BROWSER_PAGE_SIZE)
+    try:
+        current = int(self.icon_page)
+    except (TypeError, ValueError):
+        current = 0
+    self.icon_page = str(min(max(current + direction, 0), page_count - 1))
+
+
+def _previous_icon_page(self, _context):
+    if not self.previous_page:
+        return
+    self.previous_page = False
+    _step_icon_page(self, -1)
+
+
+def _next_icon_page(self, _context):
+    if not self.next_page:
+        return
+    self.next_page = False
+    _step_icon_page(self, 1)
 
 
 class PC_OT_AddPieMenu(bpy.types.Operator):
@@ -105,12 +186,183 @@ class PC_OT_RebuildPieMenus(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class PC_OT_ConfigureMenuAvailability(bpy.types.Operator):
+    bl_idname = "pie_customizer.configure_menu_availability"
+    bl_label = "Menu Availability"
+    bl_description = "Choose the Blender modes where this pie menu is available"
+
+    menu_uid: StringProperty(default="")  # type: ignore
+    mode_filter_enabled: BoolProperty(  # type: ignore
+        name="Limit by Mode",
+        description="Show this pie menu only in the selected Blender modes",
+        default=False,
+    )
+    allowed_modes: EnumProperty(  # type: ignore
+        name="Available Modes",
+        description="Blender modes where this pie menu is available",
+        items=MODE_FILTER_ITEMS,
+        options={"ENUM_FLAG"},
+        default=set(),
+    )
+
+    def invoke(self, context, _event):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid) if prefs else None
+        if menu is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+
+        self.mode_filter_enabled = menu.mode_filter_enabled
+        selected = normalized_mode_selection(menu.allowed_modes)
+        if not selected:
+            selected.add(preferred_filter_for_context_mode(context.mode))
+        self.allowed_modes = selected
+        return context.window_manager.invoke_props_dialog(self, width=520)
+
+    def draw(self, context):
+        prefs = runtime.get_preferences(context)
+        layout = self.layout
+        layout.prop(self, "mode_filter_enabled", text=t(prefs, "availability_use_selected"))
+
+        if not self.mode_filter_enabled:
+            draw_space(layout, SPACING_SMALL)
+            layout.label(text=t(prefs, "availability_all_help"), icon="INFO")
+            return
+
+        supported = supported_filter_ids(blender_context_mode_ids())
+        language = effective_language(context)
+        draw_space(layout, SPACING_SMALL)
+        for group_index, (group_key, identifiers) in enumerate(MODE_FILTER_GROUPS):
+            visible = tuple(identifier for identifier in identifiers if identifier in supported)
+            if not visible:
+                continue
+            if group_index:
+                draw_space(layout, SPACING_SMALL)
+            layout.label(text=t(prefs, group_key))
+
+            if group_key == "availability_edit" and "EDIT_ANY" in visible:
+                layout.prop_enum(
+                    self,
+                    "allowed_modes",
+                    "EDIT_ANY",
+                    text=mode_label("EDIT_ANY", language),
+                )
+                visible = tuple(
+                    identifier for identifier in visible if identifier != "EDIT_ANY"
+                )
+
+            grid = layout.grid_flow(
+                row_major=True,
+                columns=2,
+                even_columns=True,
+                even_rows=False,
+                align=True,
+            )
+            if group_key == "availability_edit":
+                grid.active = "EDIT_ANY" not in self.allowed_modes
+            for identifier in visible:
+                grid.prop_enum(
+                    self,
+                    "allowed_modes",
+                    identifier,
+                    text=mode_label(identifier, language),
+                )
+
+        if not self.allowed_modes:
+            draw_space(layout, SPACING_SMALL)
+            layout.label(text=t(prefs, "availability_pick_one"), icon="ERROR")
+
+    def execute(self, context):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid) if prefs else None
+        if menu is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+        if self.mode_filter_enabled and not self.allowed_modes:
+            self.report({"ERROR"}, t(prefs, "availability_pick_one"))
+            return {"CANCELLED"}
+
+        menu.mode_filter_enabled = self.mode_filter_enabled
+        menu.allowed_modes = normalized_mode_selection(self.allowed_modes)
+        runtime.rebuild_dynamic_menus(context)
+        self.report({"INFO"}, t(prefs, "availability_updated"))
+        return {"FINISHED"}
+
+
+class PC_OT_ConfigureShortcut(bpy.types.Operator):
+    bl_idname = "pie_customizer.configure_shortcut"
+    bl_label = "Shortcut Settings"
+    bl_description = "Choose the shortcut trigger type or assign another key combination"
+
+    menu_uid: StringProperty(default="")  # type: ignore
+    event_value: EnumProperty(  # type: ignore
+        name="Trigger",
+        description="When the shortcut opens the pie menu",
+        items=EVENT_VALUE_ITEMS,
+        default="PRESS",
+    )
+
+    def invoke(self, context, _event):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid) if prefs is not None else None
+        if menu is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+
+        _select_menu(prefs, menu.uid)
+        self.event_value = normalize_event_value(menu.event_value)
+        return context.window_manager.invoke_props_dialog(self, width=360)
+
+    def draw(self, context):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid) if prefs is not None else None
+        layout = self.layout
+        layout.prop(self, "event_value", text=t(prefs, "shortcut_trigger"))
+        draw_space(layout, SPACING_SMALL)
+
+        shortcut = (
+            shortcut_display(menu.key, menu.ctrl, menu.shift, menu.alt, menu.oskey)
+            if menu is not None and menu.key
+            else t(prefs, "no_key")
+        )
+        row = layout.row(align=True)
+        row.label(text=t(prefs, "shortcut_combination"))
+        capture = row.operator(
+            "pie_customizer.capture_shortcut",
+            text=shortcut,
+            icon="KEY_HLT",
+        )
+        capture.menu_uid = self.menu_uid
+        capture.event_value = self.event_value
+        layout.label(text=t(prefs, "shortcut_reassign_help"), icon="INFO")
+
+    def execute(self, context):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid) if prefs is not None else None
+        if menu is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+
+        previous_event_value = menu.event_value
+        menu.event_value = normalize_event_value(self.event_value)
+        errors = runtime.rebuild_dynamic_menus(context)
+        if errors:
+            menu.event_value = previous_event_value
+            runtime.rebuild_dynamic_menus(context)
+            self.report({"ERROR"}, errors[0])
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, t(prefs, "shortcut_updated"))
+        return {"FINISHED"}
+
+
 class PC_OT_CaptureShortcut(bpy.types.Operator):
     bl_idname = "pie_customizer.capture_shortcut"
     bl_label = "Assign Shortcut"
     bl_description = "Press a key to assign it to the selected pie menu"
 
     menu_uid: StringProperty(default="")  # type: ignore
+    event_value: StringProperty(default="", options={"HIDDEN"})  # type: ignore
     _modifier_state = None
 
     def invoke(self, context, event):
@@ -130,10 +382,7 @@ class PC_OT_CaptureShortcut(bpy.types.Operator):
             self.report({"ERROR"}, t(prefs, "no_active_menu"))
             return {"CANCELLED"}
         self.menu_uid = menu.uid
-        for index, candidate in enumerate(prefs.pie_menus):
-            if candidate.uid == menu.uid:
-                prefs.active_menu_index = index
-                break
+        _select_menu(prefs, menu.uid)
 
         if bpy.app.background or context.window is None:
             self.report({"WARNING"}, t(prefs, "capture_shortcut_background"))
@@ -167,19 +416,40 @@ class PC_OT_CaptureShortcut(bpy.types.Operator):
         if event.type in {"MOUSEMOVE", "INBETWEEN_MOUSEMOVE", "TIMER", "WINDOW_DEACTIVATE"}:
             return {"RUNNING_MODAL"}
 
-        menu.key = key_storage_name(event.type)
         state = self._modifier_state or {}
-        menu.ctrl = bool(event.ctrl or state.get("ctrl"))
-        menu.shift = bool(event.shift or state.get("shift"))
-        menu.alt = bool(event.alt or state.get("alt"))
-        menu.oskey = bool(event.oskey or state.get("oskey"))
+        key = key_storage_name(event.type)
+        ctrl = bool(event.ctrl or state.get("ctrl"))
+        shift = bool(event.shift or state.get("shift"))
+        alt = bool(event.alt or state.get("alt"))
+        oskey = bool(event.oskey or state.get("oskey"))
+        if is_unsafe_plain_shortcut(key, ctrl, shift, alt, oskey):
+            self.report({"WARNING"}, t(prefs, "shortcut_requires_modifier"))
+            return {"RUNNING_MODAL"}
 
-        readable = shortcut_display(menu.key, menu.ctrl, menu.shift, menu.alt, menu.oskey)
+        previous_shortcut = _shortcut_snapshot(menu)
+        menu.key = key
+        menu.ctrl = ctrl
+        menu.shift = shift
+        menu.alt = alt
+        menu.oskey = oskey
+        if self.event_value:
+            menu.event_value = normalize_event_value(self.event_value)
+
         errors = runtime.rebuild_dynamic_menus(context)
         if errors:
+            _restore_shortcut(menu, previous_shortcut)
+            runtime.rebuild_dynamic_menus(context)
             self.report({"ERROR"}, errors[0])
             return {"CANCELLED"}
 
+        readable = shortcut_display(
+            menu.key,
+            menu.ctrl,
+            menu.shift,
+            menu.alt,
+            menu.oskey,
+            menu.event_value,
+        )
         self.report({"INFO"}, f"{t(prefs, 'capture_shortcut_set')}: {readable}")
         return {"FINISHED"}
 
@@ -215,12 +485,14 @@ class PC_OT_AssignBrowserAction(bpy.types.Operator):
 
         runtime.ensure_menu_shape(menu)
         slot = menu.slots[int(menu.active_slot_position)]
-        slot.enabled = True
-        slot.label = self.label or self.item_id
-        slot.icon = self.icon or "NONE"
-        slot.slot_type = self.slot_type
-        slot.command = self.command
-        slot.operator_context = self.operator_context
+        runtime.assign_slot_action(
+            slot,
+            label=self.label or self.item_id,
+            icon=self.icon,
+            slot_type=self.slot_type,
+            command=self.command,
+            operator_context=self.operator_context,
+        )
         self.report({"INFO"}, f"{t(prefs, 'catalog_action_assigned')}: {slot.label}")
         return {"FINISHED"}
 
@@ -409,6 +681,136 @@ class PC_OT_ConfigureOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class PC_OT_ChooseSlotIcon(bpy.types.Operator):
+    bl_idname = "pie_customizer.choose_slot_icon"
+    bl_label = "Choose Icon"
+    bl_description = "Choose a built-in Blender icon for the selected pie button"
+
+    menu_uid: StringProperty(default="", options={"HIDDEN"})  # type: ignore
+    slot_position: StringProperty(default="0", options={"HIDDEN"})  # type: ignore
+    icon_search: StringProperty(  # type: ignore
+        name="Icon Search",
+        description="Filter icons by their Blender identifier",
+        default="",
+        update=_reset_icon_page,
+    )
+    icon_page: EnumProperty(  # type: ignore
+        name="Icon Page",
+        description="Choose a page of matching icons",
+        items=_icon_page_items,
+    )
+    previous_page: BoolProperty(  # type: ignore
+        default=False,
+        options={"SKIP_SAVE"},
+        update=_previous_icon_page,
+    )
+    next_page: BoolProperty(  # type: ignore
+        default=False,
+        options={"SKIP_SAVE"},
+        update=_next_icon_page,
+    )
+    icon: EnumProperty(  # type: ignore
+        name="Icon",
+        description="Built-in Blender icon used by this pie button",
+        items=_slot_icon_enum_items,
+    )
+
+    def invoke(self, context, _event):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid)
+        slot = _slot_by_position(menu, self.slot_position)
+        if slot is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+
+        _select_menu(prefs, menu.uid)
+        menu.active_slot_position = self.slot_position
+        current_icon = runtime.safe_icon(slot.icon)
+        self.icon = (
+            current_icon
+            if current_icon in runtime.builtin_icon_names()
+            else "NONE"
+        )
+        self.icon_search = ""
+        self.icon_page = "0"
+        return context.window_manager.invoke_props_dialog(self, width=660)
+
+    def draw(self, context):
+        prefs = runtime.get_preferences(context)
+        layout = self.layout
+
+        selected = runtime.safe_icon(self.icon)
+        preview = layout.row(align=True)
+        preview.label(
+            text=f"{t(prefs, 'icon_selected')}: {selected}",
+            icon=selected if selected != "NONE" else "IMAGE_DATA",
+        )
+        clear = preview.row(align=True)
+        clear.enabled = selected != "NONE"
+        clear.prop_enum(self, "icon", "NONE", text=t(prefs, "icon_none"), icon="X")
+
+        draw_space(layout, SPACING_SMALL)
+        layout.prop(self, "icon_search", text="", icon="VIEWZOOM")
+
+        matches = _matching_icon_names(self.icon_search)
+        page_count = max(
+            1,
+            (len(matches) + ICON_BROWSER_PAGE_SIZE - 1) // ICON_BROWSER_PAGE_SIZE,
+        )
+        try:
+            page = min(max(int(self.icon_page), 0), page_count - 1)
+        except (TypeError, ValueError):
+            page = 0
+        start = page * ICON_BROWSER_PAGE_SIZE
+        visible = matches[start : start + ICON_BROWSER_PAGE_SIZE]
+
+        draw_space(layout, SPACING_SMALL)
+        if visible:
+            grid = layout.grid_flow(
+                row_major=True,
+                columns=ICON_BROWSER_COLUMNS,
+                even_columns=True,
+                even_rows=True,
+                align=True,
+            )
+            for icon_name in visible:
+                grid.prop_enum(
+                    self,
+                    "icon",
+                    icon_name,
+                    text="",
+                    icon=icon_name if icon_name != "NONE" else "X",
+                )
+        else:
+            layout.label(text=t(prefs, "icon_no_results"), icon="INFO")
+
+        draw_space(layout, SPACING_MEDIUM)
+        footer = layout.row(align=True)
+        footer.label(text=t(prefs, "icon_results").format(count=len(matches)))
+        pages = footer.row(align=True)
+        pages.enabled = page_count > 1
+        pages.prop(self, "icon_page", text=t(prefs, "icon_page"))
+        previous = pages.row(align=True)
+        previous.enabled = page > 0
+        previous.prop(self, "previous_page", text="", icon="TRIA_LEFT", toggle=True)
+        following = pages.row(align=True)
+        following.enabled = page + 1 < page_count
+        following.prop(self, "next_page", text="", icon="TRIA_RIGHT", toggle=True)
+        layout.label(text=t(prefs, "icon_search_help"), icon="INFO")
+
+    def execute(self, context):
+        prefs = runtime.get_preferences(context)
+        menu = _menu_by_uid(prefs, self.menu_uid)
+        slot = _slot_by_position(menu, self.slot_position)
+        if slot is None:
+            self.report({"ERROR"}, t(prefs, "no_active_menu"))
+            return {"CANCELLED"}
+
+        slot.icon = runtime.safe_icon(self.icon)
+        self.report({"INFO"}, t(prefs, "icon_updated"))
+        return {"FINISHED"}
+
+
 class PC_OT_ClearSlot(bpy.types.Operator):
     bl_idname = "pie_customizer.clear_slot"
     bl_label = "Clear Position"
@@ -447,10 +849,10 @@ class PC_OT_SelectSlot(bpy.types.Operator):
 
 class PC_OT_AddMirrorXCleanSeam(bpy.types.Operator):
     bl_idname = "pie_customizer.add_mirror_x_clean_seam"
-    bl_label = "Add Mirror X from 3D Cursor and Clean Seam"
+    bl_label = "Add Mirror X from 3D Cursor"
     bl_description = (
         "Create a Plain Axes Empty at the 3D Cursor, use it as the Mirror "
-        "Object, and delete selected or automatically detected seam faces"
+        "Object, and optionally delete the face at the mirror seam"
     )
     bl_options = {"REGISTER", "UNDO"}
 
@@ -495,6 +897,21 @@ class PC_OT_AddMirrorXCleanSeam(bpy.types.Operator):
             and active_object.type == "MESH"
             and context.mode in {"OBJECT", "EDIT_MESH"}
         )
+
+    def invoke(self, context, _event):
+        return context.window_manager.invoke_props_dialog(self, width=420)
+
+    def draw(self, _context):
+        layout = self.layout
+        layout.prop(self, "delete_selected_faces")
+        layout.separator()
+        layout.prop(self, "use_clip")
+        layout.prop(self, "merge_threshold")
+        bisect_row = layout.row(align=True)
+        bisect_row.prop(self, "use_bisect")
+        flip_row = bisect_row.row(align=True)
+        flip_row.enabled = self.use_bisect
+        flip_row.prop(self, "flip_bisect")
 
     def execute(self, context):
         active_object = context.active_object
@@ -573,10 +990,15 @@ class PC_OT_AddMirrorXCleanSeam(bpy.types.Operator):
         target_collection.objects.link(mirror_object)
         modifier.mirror_object = mirror_object
 
-        self.report(
-            {"INFO"},
-            f"{t(runtime.get_preferences(context), 'mirror_x_added')}: {deleted_faces}",
-        )
+        prefs = runtime.get_preferences(context)
+        if self.delete_selected_faces:
+            message = (
+                f"{t(prefs, 'mirror_x_added')}; "
+                f"{t(prefs, 'mirror_x_faces_deleted')}: {deleted_faces}"
+            )
+        else:
+            message = f"{t(prefs, 'mirror_x_added')}; {t(prefs, 'mirror_x_faces_kept')}"
+        self.report({"INFO"}, message)
         return {"FINISHED"}
 
 
@@ -637,6 +1059,36 @@ def _menu_by_uid(prefs, uid: str):
     return None
 
 
+def _slot_by_position(menu, position: str):
+    if menu is None or position not in {str(index) for index in range(8)}:
+        return None
+    runtime.ensure_menu_shape(menu)
+    return menu.slots[int(position)]
+
+
+def _select_menu(prefs, menu_uid: str):
+    for index, candidate in enumerate(prefs.pie_menus):
+        if candidate.uid == menu_uid:
+            prefs.active_menu_index = index
+            return
+
+
+def _shortcut_snapshot(menu):
+    return {
+        "key": menu.key,
+        "event_value": menu.event_value,
+        "ctrl": menu.ctrl,
+        "shift": menu.shift,
+        "alt": menu.alt,
+        "oskey": menu.oskey,
+    }
+
+
+def _restore_shortcut(menu, values):
+    for name, value in values.items():
+        setattr(menu, name, value)
+
+
 class PC_OT_RunAction(bpy.types.Operator):
     bl_idname = "pie_customizer.run_action"
     bl_label = "Run Pie Menu Action"
@@ -651,13 +1103,18 @@ class PC_OT_RunAction(bpy.types.Operator):
     )
     command: StringProperty(default="")  # type: ignore
     operator_context: StringProperty(default="INVOKE_DEFAULT")  # type: ignore
+    context_space_type: StringProperty(default="", options={"HIDDEN"})  # type: ignore
 
     def execute(self, context):
         try:
             if self.action_type == "OPERATOR":
                 return runtime.run_operator_command(self.command, self.operator_context)
             if self.action_type == "PROPERTY":
-                return runtime.run_property_command(self.command, context)
+                return runtime.run_property_command(
+                    self.command,
+                    context,
+                    self.context_space_type,
+                )
         except Exception as exc:
             LOGGER.exception("Pie action failed | type=%s", self.action_type)
             self.report({"ERROR"}, f"Pie Customizer: {exc}")
@@ -737,6 +1194,8 @@ CLASSES = (
     PC_OT_RemovePieMenu,
     PC_OT_DuplicatePieMenu,
     PC_OT_RebuildPieMenus,
+    PC_OT_ConfigureMenuAvailability,
+    PC_OT_ConfigureShortcut,
     PC_OT_CaptureShortcut,
     PC_OT_AssignBrowserAction,
     PC_OT_ToggleFavorite,
@@ -745,6 +1204,7 @@ CLASSES = (
     PC_OT_SelectCatalogGroup,
     PC_OT_SelectOperatorGroup,
     PC_OT_ConfigureOperator,
+    PC_OT_ChooseSlotIcon,
     PC_OT_ClearSlot,
     PC_OT_SelectSlot,
     PC_OT_AddMirrorXCleanSeam,
