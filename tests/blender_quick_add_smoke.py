@@ -61,7 +61,7 @@ def main():
 
     module = addon_utils.enable("pie_customizer", default_set=True, persistent=False)
     assert module is not None
-    assert tuple(module.ADDON_VERSION) == (1, 1, 1)
+    assert tuple(module.ADDON_VERSION) == (1, 1, 3)
 
     from pie_customizer import availability, command_catalog, quick_add, runtime
 
@@ -140,6 +140,54 @@ def main():
         "command": "mesh.primitive_cube_add(size=2.5, align='WORLD')",
         "space_type": "",
     }
+
+    class BMAX_OT_import(bpy.types.Operator):
+        bl_idname = "bmax.import"
+        bl_label = "Import from 3dsmax"
+
+        def execute(self, context):
+            context.scene["_pie_customizer_keyword_operator_ran"] = True
+            return {"FINISHED"}
+
+    bpy.utils.register_class(BMAX_OT_import)
+    try:
+        captured_keyword_operator = quick_add.capture_button_operator(
+            SimpleNamespace(
+                button_operator=FakeProperties(
+                    "BMAX_OT_import",
+                    "Import from 3dsmax",
+                    (descriptor("rna_type", "POINTER"),),
+                    {},
+                    set(),
+                )
+            )
+        )
+        assert captured_keyword_operator == {
+            "operator_id": "bmax.import",
+            "label": "Import from 3dsmax",
+            "command": "bmax.import()",
+            "space_type": "",
+        }
+        assert runtime.normalize_operator_command("bmax.import()") == "bmax.import()"
+
+        keyword_layout = RecordingLayout()
+        runtime._draw_slot(
+            keyword_layout,
+            SimpleNamespace(
+                enabled=True,
+                slot_type="OPERATOR",
+                icon="IMPORT",
+                label="Get from 3dsmax",
+                command="bmax.import()",
+                operator_context="EXEC_DEFAULT",
+            ),
+            bpy.context,
+        )
+        assert keyword_layout.entries[-1][0] == "bmax.import"
+        assert runtime.run_operator_command("bmax.import()", "EXEC_DEFAULT") == {"FINISHED"}
+        assert bpy.context.scene.pop("_pie_customizer_keyword_operator_ran") is True
+    finally:
+        bpy.utils.unregister_class(BMAX_OT_import)
 
     unsupported = quick_add.capture_button_operator(
         SimpleNamespace(

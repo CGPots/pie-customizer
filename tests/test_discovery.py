@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from pie_customizer.action_parser import parse_operator_command
 from pie_customizer.command_catalog import SEARCH_ACTIONS, catalog_action_group
 from pie_customizer.discovery import (
     BrowserAction,
@@ -64,6 +65,11 @@ class DiscoveryTest(unittest.TestCase):
             format_operator_command("mesh.merge", {"type": "CENTER", "uvs": True}),
             "mesh.merge(type='CENTER', uvs=True)",
         )
+
+    def test_command_formatting_supports_python_keyword_name(self):
+        command = format_operator_command("bmax.import")
+        self.assertEqual(command, "bmax.import()")
+        self.assertEqual(parse_operator_command(command).operator_id, "bmax.import")
 
     def test_modifier_enum_items_become_assignable_actions(self):
         enum_items = (

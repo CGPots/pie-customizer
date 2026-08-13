@@ -36,14 +36,27 @@ def parse_operator_command(command: str) -> OperatorCommand:
         operator_id = _normalize_operator_id(text)
         return OperatorCommand(operator_id=operator_id, kwargs={})
 
-    call = _parse_expression_node(text, "Invalid operator syntax")
+    call_start = text.find("(")
+    operator_id = _normalize_operator_id(text[:call_start])
+    # Blender operator names are not constrained by Python's keyword rules.
+    # For example, BMAX Connector registers ``bmax.import``.  Parse the call
+    # suffix with a neutral function name so Python validates the arguments
+    # without trying to interpret the Blender operator id as source code.
+    call = _parse_expression_node(
+        f"_pie_customizer_operator{text[call_start:]}",
+        "Invalid operator syntax",
+    )
     if not isinstance(call, ast.Call):
+        raise ValueError("Operator command must be a function call")
+    if (
+        not isinstance(call.func, ast.Name)
+        or call.func.id != "_pie_customizer_operator"
+    ):
         raise ValueError("Operator command must be a function call")
 
     if call.args:
         raise ValueError("Only keyword arguments are supported")
 
-    operator_id = _normalize_operator_id(_dotted_name(call.func))
     kwargs: dict[str, Any] = {}
     for keyword in call.keywords:
         if keyword.arg is None:
@@ -89,14 +102,6 @@ def _normalize_property_path(path: str) -> str:
     if not _PROPERTY_RE.match(path):
         raise ValueError("Use a property path like context.space_data.overlay.show_overlays")
     return path
-
-
-def _dotted_name(node: ast.AST) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        return f"{_dotted_name(node.value)}.{node.attr}"
-    raise ValueError("Operator function must be a dotted name")
 
 
 def _parse_literal(value: str) -> Any:

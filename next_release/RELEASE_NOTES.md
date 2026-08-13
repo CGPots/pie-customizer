@@ -1,10 +1,11 @@
-## Pie Customizer 1.1.1
+## Pie Customizer 1.1.3
 
-- Added **Add to Pie Customizer** for supported Blender operator and property buttons.
-- Added explicit property values, menu and direction selection, new-menu creation, and occupied-slot replacement confirmation to Quick Add.
-- Added Press, Release, Click, Double Click, and Drag shortcut triggers with shortcut reassignment from a compact dialog.
-- Added a searchable, paged browser for Blender built-in icons.
-- Added automatic RNA/catalog icon suggestions and a compact icon override in Quick Add.
-- Preserved icons and shortcut event values through JSON preset import/export while keeping legacy presets compatible.
-- Improved Quick Add alignment, direction labels, spacing, and icon-page navigation.
-- Verified the packaged release in Blender 4.2 LTS, 4.5 LTS, and 5.2 LTS.
+Added a clear hierarchy view for pie menus with clean indentation. Shared
+submenus are displayed under each parent menu and stay synchronized when
+edited.
+
+- Fixed Quick Add and execution of third-party operators whose identifiers
+  contain Python keyword names, including `bmax.import()` from BMAX Connector.
+- Kept mode and shortcut controls aligned across nested menu levels.
+- Preserved the existing menu data and JSON preset format.
+- Verified in Blender 4.2 LTS, 4.5 LTS, and 5.2 LTS.

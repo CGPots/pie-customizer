@@ -156,3 +156,16 @@ in Blender 4.5, and 1026 in Blender 5.2. Colored swatches remain available.
 Interactive UI layout was reviewed on macOS in Blender 5.2. Windows and Linux,
 as well as complete manual pointer interaction in Blender 4.2 and 4.5, remain
 release-feedback targets rather than claimed test coverage.
+
+## Version 1.1.3 Addendum
+
+The menu list now derives a visual hierarchy from enabled nested-menu slots.
+Transient UI rows point to the stored menus and do not mutate menu storage or
+the JSON preset format. A submenu referenced by multiple parents is displayed
+under each parent; every displayed occurrence still edits the same underlying
+menu. Deep nesting, disabled links, shared references, and cycles have
+automated regression coverage. Compact branch markers avoid long continuation
+guides at deeper levels. The hierarchy UI and aligned selection layout were
+visually reviewed in Blender 5.2 on macOS. Hierarchy registration and shared
+reference behavior were also checked in Blender 4.2, 4.5, and 5.2. Nested
+rows use indentation only, without connector glyphs or continuation lines.

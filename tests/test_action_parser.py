@@ -14,6 +14,21 @@ class ActionParserTest(unittest.TestCase):
         self.assertEqual(parsed.operator_id, "mesh.primitive_cube_add")
         self.assertEqual(parsed.kwargs, {"size": 2, "enter_editmode": False})
 
+    def test_operator_call_supports_python_keyword_name(self):
+        parsed = parse_operator_command("bmax.import()")
+        self.assertEqual(parsed.operator_id, "bmax.import")
+        self.assertEqual(parsed.kwargs, {})
+
+    def test_keyword_named_operator_keeps_literal_only_kwargs(self):
+        parsed = parse_operator_command(
+            "bpy.ops.bmax.import(filepath='/tmp/example.fbx', enabled=True)"
+        )
+        self.assertEqual(parsed.operator_id, "bmax.import")
+        self.assertEqual(
+            parsed.kwargs,
+            {"filepath": "/tmp/example.fbx", "enabled": True},
+        )
+
     def test_operator_rejects_positional_args(self):
         with self.assertRaises(ValueError):
             parse_operator_command("object.select_all('SELECT')")
@@ -21,6 +36,13 @@ class ActionParserTest(unittest.TestCase):
     def test_operator_rejects_executable_argument(self):
         with self.assertRaises(ValueError):
             parse_operator_command("object.delete(confirm=print('unsafe'))")
+
+        with self.assertRaises(ValueError):
+            parse_operator_command("bmax.import(filepath=print('unsafe'))")
+
+    def test_operator_rejects_expression_after_keyword_named_call(self):
+        with self.assertRaises(ValueError):
+            parse_operator_command("bmax.import().__class__")
 
     def test_operator_supports_literal_collections_and_signed_numbers(self):
         parsed = parse_operator_command(

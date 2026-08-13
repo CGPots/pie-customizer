@@ -4,6 +4,12 @@
 
 Автор: `cgPots`. Лицензия: `GPL-3.0-or-later`.
 
+## Pie Customizer 1.1.3
+
+Added a clear hierarchy view for pie menus with clean indentation. Shared
+submenus are displayed under each parent menu and stay synchronized when
+edited.
+
 ## Что уже реализовано
 
 - Создание нескольких пользовательских круговых меню.
@@ -13,6 +19,8 @@
 - Типы срабатывания хоткея `Press`, `Release`, `Click`, `Double Click` и
   `Drag`, а также переназначение сочетания из компактного окна.
 - Настройка 8 стандартных позиций pie menu: слева, справа, сверху, снизу и диагонали.
+- Список меню показывает вложенные пользовательские меню в виде дерева с
+  аккуратными отступами.
 - Визуальный каталог встроенных иконок Blender с поиском, страницами и
   автоматическим предложением иконки в Quick Add.
 - Автоматический английский интерфейс и русский перевод, который следует языку Blender.
@@ -36,15 +44,15 @@
 
 ## Установка
 
-Совместимость: Blender 4.2 и новее. Версия 1.1.1 проверена в Blender 4.2 LTS,
-4.5 LTS и 5.2 LTS на macOS.
+Совместимость: Blender 4.2 и новее. Версия 1.1.3 проверена в Blender 5.2 LTS;
+unit-тесты также пройдены встроенными Python Blender 4.2 и 4.5.
 
 Подробная матрица операторов, параметров и результатов запуска:
 [`BLENDER_VERSION_AUDIT.md`](BLENDER_VERSION_AUDIT.md).
 
 Установите официальный Blender Extension-архив:
 
-`dist/pie_customizer-1.1.1.zip`
+`dist/pie_customizer-1.1.3.zip`
 
 В Blender: `Edit > Preferences > Add-ons > Install from Disk...`
 

@@ -42,7 +42,7 @@ def main() -> None:
             importlib.invalidate_caches()
             module = addon_utils.enable(MODULE_NAME, default_set=True, persistent=False)
             assert module is not None
-            assert module.ADDON_VERSION == (1, 0, 2)
+            assert module.ADDON_VERSION == (1, 1, 3)
 
             prefs = bpy.context.preferences.addons[MODULE_NAME].preferences
             assert len(prefs.pie_menus) == 0

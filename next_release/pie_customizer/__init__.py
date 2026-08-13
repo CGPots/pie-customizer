@@ -1,6 +1,6 @@
 """Pie Customizer - custom pie menu builder for Blender."""
 
-ADDON_VERSION = (1, 1, 1)
+ADDON_VERSION = (1, 1, 3)
 
 bl_info = {
     "name": "Pie Customizer",
@@ -24,6 +24,7 @@ if bpy is not None:
         command_catalog,
         discovery,
         localization,
+        menu_hierarchy,
         model,
         operator_parameters,
         operators,
@@ -44,6 +45,7 @@ if bpy is not None:
             command_catalog,
             discovery,
             localization,
+            menu_hierarchy,
             shortcuts,
             model,
             operator_parameters,

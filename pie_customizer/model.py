@@ -139,6 +139,15 @@ class PC_FavoriteAction(bpy.types.PropertyGroup):
     operator_context: StringProperty(default="INVOKE_DEFAULT")  # type: ignore
 
 
+class PC_MenuHierarchyEntry(bpy.types.PropertyGroup):
+    """Transient UI row pointing to a real menu, including shared aliases."""
+
+    menu_uid: StringProperty(default="", options={"HIDDEN", "SKIP_SAVE"})  # type: ignore
+    prefix: StringProperty(default="", options={"HIDDEN", "SKIP_SAVE"})  # type: ignore
+    depth: IntProperty(default=0, min=0, options={"HIDDEN", "SKIP_SAVE"})  # type: ignore
+    occurrence_key: StringProperty(default="", options={"HIDDEN", "SKIP_SAVE"})  # type: ignore
+
+
 class PC_PieSlot(bpy.types.PropertyGroup):
     enabled: BoolProperty(name="Enabled", description="Show this slot in the pie menu", default=False)  # type: ignore
     label: StringProperty(name="Label", description="Button text in the pie menu", default="")  # type: ignore
@@ -202,6 +211,7 @@ class PC_PieMenu(bpy.types.PropertyGroup):
 CLASSES = (
     PC_OperatorParameter,
     PC_FavoriteAction,
+    PC_MenuHierarchyEntry,
     PC_PieSlot,
     PC_PieMenu,
 )

@@ -31,7 +31,8 @@ from .discovery import (
     recent_operator_actions,
 )
 from .localization import effective_language, t
-from .model import PC_FavoriteAction, PC_PieMenu
+from .menu_hierarchy import build_menu_hierarchy
+from .model import PC_FavoriteAction, PC_MenuHierarchyEntry, PC_PieMenu
 from .operator_parameters import operator_has_editable_parameters
 from .shortcuts import shortcut_display
 from .ui_style import (
@@ -503,15 +504,101 @@ def _menu_availability_text(prefs, menu) -> str:
     return t(prefs, "modes_selected").format(count=len(selected))
 
 
+def _menu_hierarchy_rows(prefs):
+    menus = list(prefs.pie_menus)
+    menu_ids = [runtime.menu_id_for(menu) if menu.uid else "" for menu in menus]
+    return build_menu_hierarchy(menus, menu_ids)
+
+
+def _menu_index_by_uid(prefs, menu_uid: str) -> int | None:
+    for index, menu in enumerate(prefs.pie_menus):
+        if menu.uid == menu_uid:
+            return index
+    return None
+
+
+def _active_hierarchy_entry_changed(prefs, context) -> None:
+    index = prefs.active_hierarchy_index
+    if index < 0 or index >= len(prefs.menu_hierarchy_entries):
+        return
+    menu_index = _menu_index_by_uid(
+        prefs,
+        prefs.menu_hierarchy_entries[index].menu_uid,
+    )
+    if menu_index is not None:
+        prefs.active_menu_index = menu_index
+
+
+def _sync_menu_hierarchy_entries(prefs) -> None:
+    rows = _menu_hierarchy_rows(prefs)
+    desired = [
+        (
+            prefs.pie_menus[row.index].uid,
+            row.prefix,
+            row.depth,
+            row.occurrence_key,
+        )
+        for row in rows
+    ]
+    current = [
+        (entry.menu_uid, entry.prefix, entry.depth, entry.occurrence_key)
+        for entry in prefs.menu_hierarchy_entries
+    ]
+
+    selected_occurrence = ""
+    if 0 <= prefs.active_hierarchy_index < len(prefs.menu_hierarchy_entries):
+        selected_occurrence = prefs.menu_hierarchy_entries[
+            prefs.active_hierarchy_index
+        ].occurrence_key
+
+    if current != desired:
+        prefs.menu_hierarchy_entries.clear()
+        for menu_uid, prefix, depth, occurrence_key in desired:
+            entry = prefs.menu_hierarchy_entries.add()
+            entry.menu_uid = menu_uid
+            entry.prefix = prefix
+            entry.depth = depth
+            entry.occurrence_key = occurrence_key
+
+    active_uid = ""
+    if prefs.pie_menus:
+        active_index = min(
+            max(prefs.active_menu_index, 0),
+            len(prefs.pie_menus) - 1,
+        )
+        active_uid = prefs.pie_menus[active_index].uid
+
+    selected_index = next(
+        (
+            index
+            for index, entry in enumerate(prefs.menu_hierarchy_entries)
+            if entry.occurrence_key == selected_occurrence
+            and entry.menu_uid == active_uid
+        ),
+        -1,
+    )
+    if selected_index < 0:
+        selected_index = next(
+            (
+                index
+                for index, entry in enumerate(prefs.menu_hierarchy_entries)
+                if entry.menu_uid == active_uid
+            ),
+            0,
+        )
+    prefs.active_hierarchy_index = selected_index
+
+
 def _draw_menus_content(layout, prefs) -> None:
+    _sync_menu_hierarchy_entries(prefs)
     menu_row = layout.row()
     menu_row.template_list(
         "PC_UL_PieMenuList",
         "",
         prefs,
-        "pie_menus",
+        "menu_hierarchy_entries",
         prefs,
-        "active_menu_index",
+        "active_hierarchy_index",
         rows=3,
     )
     menu_buttons = menu_row.column(align=True)
@@ -764,34 +851,53 @@ class PC_UL_PieMenuList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type not in {"DEFAULT", "COMPACT"}:
             return
+        menu_index = _menu_index_by_uid(data, item.menu_uid)
+        if menu_index is None:
+            layout.label(text="Missing menu", icon="ERROR")
+            return
+        menu = data.pie_menus[menu_index]
         row = layout.row(align=True)
-        row.prop(item, "enabled", text="")
-        row.prop(item, "name", text="", emboss=False)
-        availability = row.operator(
+        columns = row.split(factor=0.36, align=True)
+        name_row = columns.row(align=True)
+        action_columns = columns.split(factor=0.48, align=True)
+        availability_row = action_columns.row(align=True)
+        shortcut_row = action_columns.row(align=True)
+        if item.depth > 0:
+            tree_split = name_row.split(
+                factor=min(0.06 + (item.depth - 1) * 0.07, 0.38),
+                align=True,
+            )
+            tree_split.row(align=True)
+            name_controls = tree_split.row(align=True)
+        else:
+            name_controls = name_row
+        name_controls.prop(menu, "enabled", text="")
+        name_controls.prop(menu, "name", text="", emboss=False)
+        availability = availability_row.operator(
             "pie_customizer.configure_menu_availability",
-            text=_menu_availability_text(data, item),
+            text=_menu_availability_text(data, menu),
             icon="FILTER",
         )
-        availability.menu_uid = item.uid
+        availability.menu_uid = menu.uid
         shortcut = (
             shortcut_display(
-                item.key,
-                item.ctrl,
-                item.shift,
-                item.alt,
-                item.oskey,
-                item.event_value,
+                menu.key,
+                menu.ctrl,
+                menu.shift,
+                menu.alt,
+                menu.oskey,
+                menu.event_value,
             )
-            if item.key
+            if menu.key
             else t(data, "no_key")
         )
-        row.operator_context = "INVOKE_DEFAULT"
-        capture = row.operator(
+        shortcut_row.operator_context = "INVOKE_DEFAULT"
+        capture = shortcut_row.operator(
             "pie_customizer.configure_shortcut",
             text=shortcut,
             icon="KEY_HLT",
         )
-        capture.menu_uid = item.uid
+        capture.menu_uid = menu.uid
 
 
 class PC_AddonPreferences(bpy.types.AddonPreferences):
@@ -799,6 +905,16 @@ class PC_AddonPreferences(bpy.types.AddonPreferences):
 
     pie_menus: CollectionProperty(type=PC_PieMenu)  # type: ignore
     active_menu_index: IntProperty(default=0)  # type: ignore
+    menu_hierarchy_entries: CollectionProperty(  # type: ignore
+        type=PC_MenuHierarchyEntry,
+        options={"HIDDEN", "SKIP_SAVE"},
+    )
+    active_hierarchy_index: IntProperty(  # type: ignore
+        default=0,
+        min=0,
+        options={"HIDDEN", "SKIP_SAVE"},
+        update=_active_hierarchy_entry_changed,
+    )
     catalog_mode: EnumProperty(  # type: ignore
         name="Catalog",
         description="Action source for the pie menu",
