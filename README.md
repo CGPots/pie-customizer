@@ -1,8 +1,8 @@
 # Pie Customizer
 
-Создавайте кастомные круговые меню с любыми нужными вам кнопками.
+Build custom pie menus with any Blender buttons you need.
 
-Автор: `cgPots`. Лицензия: `GPL-3.0-or-later`.
+Author: `cgPots`. License: `GPL-3.0-or-later`.
 
 ## Pie Customizer 1.1.3
 
@@ -10,111 +10,148 @@ Added a clear hierarchy view for pie menus with clean indentation. Shared
 submenus are displayed under each parent menu and stay synchronized when
 edited.
 
-## Что уже реализовано
+## Features
 
-- Создание нескольких пользовательских круговых меню.
-- Привязка каждого меню к горячей клавише Blender через `wm.call_menu_pie`.
-- Быстрое назначение поддерживаемых операций и свойств через пункт
-  `Add to Pie Customizer` в контекстном меню кнопок Blender.
-- Типы срабатывания хоткея `Press`, `Release`, `Click`, `Double Click` и
-  `Drag`, а также переназначение сочетания из компактного окна.
-- Настройка 8 стандартных позиций pie menu: слева, справа, сверху, снизу и диагонали.
-- Список меню показывает вложенные пользовательские меню в виде дерева с
-  аккуратными отступами.
-- Визуальный каталог встроенных иконок Blender с поиском, страницами и
-  автоматическим предложением иконки в Quick Add.
-- Автоматический английский интерфейс и русский перевод, который следует языку Blender.
-- Типы слотов:
-  - `Оператор`: `object.delete()` или `mesh.primitive_cube_add(size=2)`
-  - `Свойство`: `context.space_data.overlay.show_overlays`
-  - `Меню`: `VIEW3D_MT_view`
-  - `Разделитель`
-- Импорт и экспорт пресетов меню в JSON.
-- Автоматическое обнаружение всех зарегистрированных операторов Blender и включённых аддонов.
-- 125 готовых переключателей 3D View: оверлеи, gizmo, панели, затенение, видимость объектов, трансформация и привязка.
-- Поиск по названию, описанию и техническому `operator id`, фильтр по разделам и страницы результатов.
-- Отдельные вкладки популярных, недавних и избранных действий.
-- Редактор основных параметров оператора: числа, строки, переключатели и списки.
-- Готовые варианты общих команд: ориентации, pivot point, спад пропорционального редактирования, режимы объекта и выделения, виды по осям, затенение, Origin, Convert, Merge, Delete и типы Empty.
-- Составная команда `Зеркало X от курсора + удалить стык`: создаёт Empty Plain Axes `mrr` у 3D-курсора, назначает его как Mirror Object, удаляет выделенные грани либо автоматически ближайший к плоскости зеркала торец и добавляет Mirror по X с Merge и Clipping.
-- Отдельный раздел `Скульптинг`: Sculpt Mode, Voxel Remesh, Dyntopo, симметрия, маски и скульптурные оверлеи.
-- Отдельный раздел `Рисование`: Texture Paint, Vertex Paint, Weight Paint, кисти, палитры и доступные в установленной версии команды Grease Pencil.
-- Поиск автоматически индексирует встроенные кисти текущей версии Blender. В Blender 4.2 используются доступные там штатные инструменты кистей, а начиная с Blender 4.3 — встроенные ассеты Essentials. Sculpt-кисти разложены по группам `Основные`, `Рисование`, `Симуляция`, `Кривые` и `Grease Pencil`, а paint-кисти — по соответствующим режимам Texture, Vertex, Weight и Grease Pencil.
-- Отдельный раздел `Ноды`: команды Shader Editor, Geometry Nodes и Compositor больше не смешиваются с общими командами вида.
+- Create and manage multiple custom pie menus.
+- Assign a Blender shortcut to each menu through `wm.call_menu_pie`.
+- Quickly add supported operators and properties from the
+  `Add to Pie Customizer` entry in Blender's button context menu.
+- Choose `Press`, `Release`, `Click`, `Double Click`, or `Drag` as the shortcut
+  trigger and reassign the key combination from a compact dialog.
+- Configure all eight standard pie directions.
+- View nested custom menus as a clean, indented hierarchy. A shared submenu can
+  appear under multiple parents while remaining one synchronized menu.
+- Browse and search Blender's built-in icons with paged navigation and automatic
+  icon suggestions in Quick Add.
+- Use the automatic English interface or Russian translation based on Blender's
+  interface language.
+- Add operator, property, menu, or separator slots.
+- Import and export menu presets as JSON.
+- Discover registered operators from Blender and enabled add-ons automatically.
+- Use 125 ready-made 3D View controls for overlays, gizmos, panels, shading,
+  object visibility, transforms, and snapping.
+- Search by name, description, or technical operator ID, with sections and
+  paged results.
+- Browse dedicated Popular, Recent, Favorites, Sculpting, Painting, and Nodes
+  sections.
+- Configure common operator parameters such as numbers, strings, toggles, and
+  enum values.
+- Use ready-made actions for transform orientation, pivot point, proportional
+  editing falloff, object and selection modes, axis views, shading, Origin,
+  Convert, Merge, Delete, and Empty types.
+- Use the combined `Mirror X from Cursor + Clean Seam` action to create an
+  `mrr` Plain Axes Empty at the 3D Cursor, use it as the Mirror Object, clean
+  the center seam, and add an X Mirror modifier with Merge and Clipping.
+- Search the brushes available in the current Blender version. Blender 4.2 uses
+  its available built-in brush tools, while Blender 4.3 and newer use the
+  bundled Essentials assets.
+- Keep Shader Editor, Geometry Nodes, and Compositor actions in a dedicated
+  Nodes section instead of mixing them with general view commands.
 
-## Установка
+## Installation
 
-Совместимость: Blender 4.2 и новее. Версия 1.1.3 проверена в Blender 5.2 LTS;
-unit-тесты также пройдены встроенными Python Blender 4.2 и 4.5.
+Pie Customizer supports Blender 4.2 and newer. Version 1.1.3 was tested in
+Blender 4.2 LTS, 4.5 LTS, and 5.2 LTS.
 
-Подробная матрица операторов, параметров и результатов запуска:
-[`BLENDER_VERSION_AUDIT.md`](BLENDER_VERSION_AUDIT.md).
+See [`BLENDER_VERSION_AUDIT.md`](BLENDER_VERSION_AUDIT.md) for the detailed
+compatibility and test notes.
 
-Установите официальный Blender Extension-архив:
+Install the published Blender Extension archive:
 
-`dist/pie_customizer-1.1.3.zip`
+`pie_customizer-1.1.3.zip`
 
-В Blender: `Edit > Preferences > Add-ons > Install from Disk...`
+In Blender, open `Edit > Preferences > Add-ons`, choose `Install from Disk...`,
+and select the ZIP without unpacking it.
 
-Язык интерфейса выбирается самим Blender: при русском интерфейсе Blender аддон
-показывает русский перевод, во всех остальных случаях используется английский.
+The add-on follows Blender's interface language. Russian Blender uses the
+Russian translation; all other languages use English.
 
-После изменения меню нажмите `Применить` в настройках аддона, чтобы пересобрать классы меню и горячие клавиши.
+After changing menus, click `Apply` in the add-on preferences to rebuild the
+menu classes and shortcuts.
 
-## Как пользоваться
+## Getting Started
 
-1. В блоке `Круговые меню` нажмите `Новое меню`.
-2. Каждая строка в списке - отдельное круговое меню. Чтобы сделать второе меню, снова нажмите `Новое меню`.
-3. Нажмите хоткей справа от названия меню, выберите тип срабатывания и при
-   необходимости переназначьте сочетание.
-4. В блоке `Кнопки выбранного меню` выберите сектор на схеме и нажмите действие из каталога Blender.
-5. Нажмите `Применить`.
+1. In the `Pie Menus` section, click `New Menu`.
+2. Each row is a separate pie menu. Click `New Menu` again to create another.
+3. Click the shortcut shown to the right of the menu name, choose a trigger,
+   and reassign the key combination if needed.
+4. In `Buttons in Selected Menu`, select a direction and choose an action from
+   the catalog.
+5. Click `Apply`.
 
-Поддерживаемую кнопку Blender можно назначить быстрее: нажмите её правой
-кнопкой мыши, выберите `Add to Pie Customizer`, укажите меню, значение,
-иконку и направление, затем подтвердите действие. Занятая позиция заменяется
-только после явного подтверждения.
+To add a supported Blender button faster, right-click it and choose
+`Add to Pie Customizer`. Select the menu, value, icon, and direction, then
+confirm. An occupied direction is replaced only after explicit confirmation.
 
-При первом запуске список меню пуст. Каждое новое меню создаётся с восемью свободными позициями, поэтому пользователь сразу собирает собственную раскладку без демонстрационных кнопок.
+The menu list is empty on first launch. Every new menu starts with eight empty
+directions, so you can build your own layout without removing demo actions.
 
-В разделе `Своя команда` доступен ручной ввод оператора, свойства или меню
-Blender. Импорт и экспорт JSON-пресетов находятся в разделе `Дополнительно`.
+Use `Custom Command` to enter an operator, property, or menu manually. JSON
+preset import and export are available in the `Advanced` section.
 
-В каталоге доступны режимы:
+## Action Catalog
 
-- `Популярное` - короткий набор проверенных действий с готовыми настройками.
-- `Поиск` - операторы из `bpy.ops`, команды включённых аддонов и готовые переключатели интерфейса Blender. До начала ввода показываются только короткие блоки избранного и недавнего.
-- `Недавние` - последние операторы из истории текущего окна Blender.
-- `Избранное` - действия, отмеченные кнопкой с сердцем.
-- `Вложенное меню` - назначить сектору другое созданное меню и открыть его кнопки компактным вертикальным списком.
-- `Своя команда` - ручной ввод оператора, свойства или меню Blender.
+The catalog includes these modes:
 
-После назначения оператора с редактируемыми аргументами появляется кнопка `Параметры`. Обычные параметры включаются галочкой слева, а булевы аргументы имеют один понятный выбор: `По умолчанию`, `Включено` или `Выключено`. Значение `По умолчанию` не добавляется в команду и сохраняет стандартное поведение Blender. У готовых переключателей параметров нет: кнопка в pie menu сразу меняет состояние свойства.
+- `Popular` — a short curated set of useful actions with ready-made settings.
+- `Search` — operators from `bpy.ops`, enabled add-ons, and built-in Blender UI
+  controls.
+- `Recent` — operators recently used in the current Blender window.
+- `Favorites` — actions marked with the heart button.
+- `Nested Menu` — assign another custom pie menu to the selected direction.
+- `Custom Command` — enter an operator, property, or menu manually.
 
-Внутри `Поиска` можно переключиться на `Разделы`: крупные человеческие категории позволяют просматривать команды без знания точного названия. Скульптурные операторы собраны в `Скульптинге`, команды Paint и Grease Pencil — в `Рисовании`, а операции редакторов нодов — в `Нодах`. Предметный раздел имеет приоритет над общим смыслом команды, поэтому, например, выделение Grease Pencil остаётся в `Рисовании`, а выделение ключей — в `Анимации`. В результатах показывается по 10 действий, а полный фильтр по техническим модулям `bpy.ops` спрятан под иконкой фильтра.
+When an operator has editable arguments, a `Parameters` button appears. Regular
+parameters are enabled with a checkbox. Boolean arguments use one clear choice:
+`Default`, `Enabled`, or `Disabled`. `Default` omits the argument and preserves
+Blender's standard behavior. Ready-made property toggles run immediately and do
+not need a parameters dialog.
 
-Поиск индексирует не только названия операторов, но и готовые действия из `Популярного`, русские и английские подписи, доступные значения enum-параметров Blender и встроенные кисти текущей версии. Он остаётся глобальным: команда или кисть из раздела `Скульптинг` находится обычным поиском без предварительного открытия раздела. Сначала показываются точные совпадения и совпадения в видимом названии, затем учитываются текущий режим Blender, избранное и недавние действия. Нечёткий поиск по сокращению или опечатке включается только тогда, когда обычных результатов недостаточно для одной страницы. Частые варианты показываются отдельными готовыми кнопками; остальные открываются как общая команда и настраиваются через `Параметры`.
+Inside `Search`, switch to `Sections` to browse human-readable categories
+without knowing the exact command name. Sculpt operators stay in `Sculpting`,
+Paint and Grease Pencil actions stay in `Painting`, and node editor operations
+stay in `Nodes`. Results show ten actions per page. The complete technical
+`bpy.ops` module filter is available behind the filter icon.
 
-Некоторые операторы доступны только в определённом редакторе, режиме или при подходящем выделении. Каталог показывает всё зарегистрированное, а допустимость запуска проверяет сам Blender в текущем контексте.
+Search covers operator names, Popular actions, English and Russian labels,
+available enum values, and built-in brushes for the current Blender version.
+It remains global: a Sculpting action can be found without opening the
+Sculpting section first. Exact and visible-name matches appear first, followed
+by results ranked by the current mode, favorites, and recent actions. Fuzzy
+matching is used only when regular matches do not fill a page.
 
-Назначение из каталога выполняется в два клика: сначала сектор схемы, затем
-команда. Интерфейс Blender не поддерживает надёжное перетаскивание между
-произвольными кнопками Preferences, поэтому выбор кликом остаётся
-предсказуемее.
+Some operators require a specific editor, mode, or selection. The catalog lists
+registered actions, while Blender validates whether each action can run in the
+current context.
 
-Нативный круг Blender содержит восемь направлений. Для большего числа действий создайте второе меню и назначьте его сектору через `Вложенное меню`; его заполненные кнопки откроются компактным списком возле выбранного сектора, а исходный круг останется на экране. Такие уровни можно продолжать дальше.
+Catalog assignment takes two clicks: select a pie direction, then select an
+action. Blender's Preferences UI does not provide reliable drag-and-drop between
+arbitrary controls, so click-based assignment is more predictable.
 
-Горячие клавиши проверяйте в самом `3D View`: пока открыто и активно окно `Preferences`, оно держит фокус и 3D View keymap может не сработать. Для сочетания нажмите модификаторы и основную клавишу вместе, например `Alt+1`; аддон сохранит всё сочетание.
+Blender's native pie layout has eight directions. To add more actions, create a
+second menu and assign it through `Nested Menu`. Its populated buttons open in
+a compact list near the selected direction while the original pie remains
+visible. Nested levels can continue further.
 
-## Примечания по логике
+Test shortcuts in the `3D View`. While the Preferences window is focused, the
+3D View keymap may not receive the event. Press modifiers and the main key
+together, for example `Alt+1`; Pie Customizer stores the complete combination.
 
-Аддон использует нативный API Blender: динамические классы `bpy.types.Menu` рисуются через `layout.menu_pie()`, а горячие клавиши открывают их через `wm.call_menu_pie`.
+## Implementation Notes
 
-Референс `Better Pie Menus v0.5.3` использует похожую базовую идею для своего конструктора: данные меню хранятся в настройках аддона, классы меню создаются динамически, а keymap регистрируется в `keyconfigs.addon`. Pie Customizer оставляет эту архитектуру компактной, чтобы дальше спокойно наращивать редактор команд.
+Pie Customizer uses Blender's native API. Dynamic `bpy.types.Menu` classes draw
+their content through `layout.menu_pie()`, and shortcuts open them through
+`wm.call_menu_pie`.
 
-## Поддержка
+`Better Pie Menus v0.5.3` uses a similar foundation for its menu builder: menu
+data is stored in add-on preferences, menu classes are generated dynamically,
+and shortcuts are registered in `keyconfigs.addon`. Pie Customizer keeps this
+architecture compact so the action editor can grow without unnecessary
+complexity.
 
-Сообщить об ошибке или предложить улучшение можно публично в
-[GitHub Issues](https://github.com/CGPots/pie-customizer/issues). Укажите версию
-Blender, операционную систему, шаги воспроизведения и приложите снимок ошибки,
-если он есть.
+## Support
+
+Report bugs or suggest improvements through
+[GitHub Issues](https://github.com/CGPots/pie-customizer/issues). Include your
+Blender version, operating system, reproduction steps, and a screenshot or
+complete error message when available.
